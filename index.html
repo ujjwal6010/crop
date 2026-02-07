@@ -4,96 +4,125 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Offline Crop Health - Diagnostic System</title>
+    <title>CropHealth AI - Save Your Harvest</title>
     <meta name="description"
-        content="An offline-first tool for farmers to diagnose crop diseases in low-connectivity areas.">
+        content="Instant, offline crop diagnosis for rural farmers. Identify diseases and get remedies anywhere.">
     <meta name="theme-color" content="#2e7d32">
     <link rel="manifest" href="manifest.json">
     <link rel="stylesheet" href="style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
 </head>
 
 <body>
-    <div class="container">
-        <!-- Home Section -->
-        <section id="home-section" class="active">
-            <header>
-                <div class="lang-container">
-                    <select id="lang-select" class="lang-dropdown">
-                        <option value="en">English</option>
-                        <option value="hi">हिंदी (Hindi)</option>
-                    </select>
+    <!-- 🟢 Offline Badge -->
+    <div id="offline-badge" class="offline-badge">
+        <span>🟢</span> <span data-i18n="offline-active">Offline Active</span>
+    </div>
+
+    <!-- 🧭 Sticky Navbar -->
+    <nav class="navbar">
+        <div class="nav-content">
+            <div class="brand">🌿 <span data-i18n="title">CropHealth AI</span></div>
+            <div class="lang-container">
+                <select id="lang-select" class="lang-dropdown">
+                    <option value="en">English</option>
+                    <option value="hi">हिंदी (Hindi)</option>
+                </select>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 🏠 Hero Section -->
+    <header class="hero-section" id="home-section">
+        <div class="hero-content">
+            <h1 data-i18n="hero-tagline">Save Your Harvest from Disease.</h1>
+            <p data-i18n="hero-subline">Instant, offline crop diagnosis for rural farmers.</p>
+            <a href="#diagnosis-tool" class="btn primary-btn pill large-cta" data-i18n="btn-start" id="start-btn">Start
+                Diagnosis</a>
+        </div>
+    </header>
+
+    <!-- 🛠 How it Works Section -->
+    <section class="how-it-works-section">
+        <div class="section-container">
+            <h2 data-i18n="how-it-works-title">How it Works</h2>
+            <div class="how-it-works-grid">
+                <div class="step">
+                    <div class="step-icon">📸</div>
+                    <h4 data-i18n="step1-title">Take Photo</h4>
                 </div>
-                <div class="logo">🌿</div>
-                <h1 data-i18n="title">CropHealth AI</h1>
-                <p class="tagline" data-i18n="tagline">Expert diagnosis, anywhere. Even offline.</p>
-            </header>
-            <main>
-                <article class="hero">
-                    <h2 data-i18n="hero-title">Empowering Farmers</h2>
-                    <p data-i18n="hero-desc">Farmers in low-connectivity areas often lack access to expert advice for
-                        crop diseases. Our
-                        system provides instant, offline diagnostic support to help you save your harvest.</p>
-                    <button id="start-btn" class="btn primary-btn" data-i18n="btn-upload">Upload Leaf Image</button>
-                </article>
-            </main>
-        </section>
-
-        <!-- Upload Section -->
-        <section id="upload-section">
-            <button class="back-link" id="back-home-btn" data-i18n="back">← Back</button>
-            <h2 data-i18n="diag-tool-title">Diagnosis Tool</h2>
-            <p data-i18n="diag-tool-desc">Please select a clear photo of the infected leaf.</p>
-
-            <div class="upload-container">
-                <input type="file" id="image-input" accept="image/*" hidden>
-                <label for="image-input" class="upload-box" id="upload-box">
-                    <div class="upload-icon">📸</div>
-                    <span data-i18n="upload-box-text">Tap to Capture or Select Image</span>
-                </label>
-                <div id="preview-container" class="hidden">
-                    <img id="image-preview" src="" alt="Selected leaf preview">
-                    <button id="check-health-btn" class="btn primary-btn" data-i18n="btn-check">Check Crop
-                        Health</button>
-                    <button id="reset-btn" class="btn secondary-btn" data-i18n="btn-another">Try Another Image</button>
+                <div class="step">
+                    <div class="step-icon">⚡</div>
+                    <h4 data-i18n="step2-title">Instant Analysis</h4>
+                </div>
+                <div class="step">
+                    <div class="step-icon">🍃</div>
+                    <h4 data-i18n="step3-title">Get Remedy</h4>
                 </div>
             </div>
-        </section>
+        </div>
+    </section>
 
-        <!-- Result Section -->
-        <section id="result-section">
-            <div class="result-card">
+    <!-- 🔬 Diagnosis Tool Section -->
+    <section id="diagnosis-tool" class="diagnosis-section">
+        <div class="section-container">
+            <div class="tool-card">
+                <h2 data-i18n="diag-tool-title">Diagnosis Tool</h2>
+                <p data-i18n="diag-tool-desc" class="desc-text">Please select a clear photo of the infected leaf.</p>
+
+                <div class="upload-container">
+                    <!-- Robust File Input & Label -->
+                    <input type="file" id="imageUpload" accept="image/*" style="display:none">
+                    <label for="imageUpload" class="file-upload-btn upload-btn" data-i18n="btn-upload">
+                        Upload Leaf Image
+                    </label>
+
+                    <!-- Empty div for Dynamic Injection -->
+                    <div id="preview-container"></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 📋 Result Section -->
+    <section id="result-section" class="hidden">
+        <div class="section-container">
+            <div class="result-card professional">
                 <div class="result-header">
                     <span class="status-badge" data-i18n="diag-ready">Diagnosis Ready</span>
                     <h2 data-i18n="diag-res-title">Diagnosis Result</h2>
                 </div>
                 <div class="result-content">
                     <div class="result-item">
-                        <h3 data-i18n="label-disease">Disease</h3>
+                        <h3 data-i18n="label-disease">Detected Disease</h3>
                         <p id="disease-name" class="highlight"></p>
                     </div>
                     <div class="result-item">
-                        <h3 data-i18n="label-remedy">Remedy</h3>
+                        <h3 data-i18n="label-remedy">Recommended Remedy</h3>
                         <p id="remedy-text"></p>
                     </div>
                     <div class="result-item">
-                        <h3 data-i18n="label-advice">Advice</h3>
+                        <h3 data-i18n="label-advice">Expert Advice</h3>
                         <p id="advice-text"></p>
                     </div>
                 </div>
-                <button id="new-diagnosis-btn" class="btn primary-btn" data-i18n="btn-new">Start New Diagnosis</button>
+                <button id="new-diagnosis-btn" class="btn primary-btn pill" data-i18n="btn-new">Start New
+                    Diagnosis</button>
             </div>
-        </section>
+        </div>
+    </section>
 
-        <footer>
+    <!-- 👣 Footer -->
+    <footer>
+        <div class="section-container">
             <p data-i18n="footer">&copy; 2026 Offline Crop Health Diagnostic System</p>
             <div id="offline-status" class="status-indicator">
                 <span class="dot"></span> <span class="status-text" data-i18n="status-online">Online</span>
             </div>
-        </footer>
-    </div>
+        </div>
+    </footer>
 
     <script src="app.js"></script>
 </body>

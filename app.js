@@ -1,42 +1,21 @@
-// DOM Elements
-const sections = {
-    home: document.getElementById('home-section'),
-    upload: document.getElementById('upload-section'),
-    result: document.getElementById('result-section')
-};
-
-const buttons = {
-    start: document.getElementById('start-btn'),
-    backHome: document.getElementById('back-home-btn'),
-    checkHealth: document.getElementById('check-health-btn'),
-    reset: document.getElementById('reset-btn'),
-    newDiagnosis: document.getElementById('new-diagnosis-btn')
-};
-
-const imageInput = document.getElementById('image-input');
-const uploadBox = document.getElementById('upload-box');
+// --- Elements & IDs ---
+const imageUpload = document.getElementById('imageUpload');
 const previewContainer = document.getElementById('preview-container');
-const imagePreview = document.getElementById('image-preview');
-const langSelect = document.getElementById('lang-select');
+const diagnosisTool = document.getElementById('diagnosis-tool');
+const resultSection = document.getElementById('result-section');
+const homeSection = document.getElementById('home-section');
 
-// Global State
+// Language & State
 let currentLang = 'en';
 let currentResult = null;
 
-// Translations
 const translations = {
     en: {
         'title': 'CropHealth AI',
-        'tagline': 'Expert diagnosis, anywhere. Even offline.',
-        'hero-title': 'Empowering Farmers',
-        'hero-desc': 'Farmers in low-connectivity areas often lack access to expert advice for crop diseases. Our system provides instant, offline diagnostic support to help you save your harvest.',
         'btn-upload': 'Upload Leaf Image',
-        'back': '← Back',
         'diag-tool-title': 'Diagnosis Tool',
         'diag-tool-desc': 'Please select a clear photo of the infected leaf.',
-        'upload-box-text': 'Tap to Capture or Select Image',
-        'btn-check': 'Check Crop Health',
-        'btn-another': 'Try Another Image',
+        'btn-check': 'Analyze Crop',
         'diag-ready': 'Diagnosis Ready',
         'diag-res-title': 'Diagnosis Result',
         'label-disease': 'Disease',
@@ -47,20 +26,22 @@ const translations = {
         'status-online': 'Online',
         'status-offline': 'Offline',
         'analyzing': 'Analyzing...',
-        'confidence': 'Confidence'
+        'confidence': 'Confidence',
+        'offline-active': 'Offline Active',
+        'step1-title': 'Take Photo',
+        'step2-title': 'Instant Analysis',
+        'step3-title': 'Get Remedy',
+        'hero-tagline': 'Save Your Harvest from Disease.',
+        'hero-subline': 'Instant, offline crop diagnosis for rural farmers.',
+        'btn-start': 'Start Diagnosis',
+        'how-it-works-title': 'How it Works'
     },
     hi: {
         'title': 'फसल स्वास्थ्य AI',
-        'tagline': 'विशेषज्ञ सलाह, कहीं भी। यहाँ तक कि ऑफलाइन भी।',
-        'hero-title': 'किसानों का सशक्तिकरण',
-        'hero-desc': 'कम कनेक्टिविटी वाले क्षेत्रों में किसानों के पास अक्सर फसल रोगों के लिए विशेषज्ञ सलाह की कमी होती है। हमारा सिस्टम आपकी फसल बचाने के लिए तत्काल, ऑफलाइन निदान सहायता प्रदान करता है।',
         'btn-upload': 'पत्ती की फोटो अपलोड करें',
-        'back': '← वापस',
         'diag-tool-title': 'निदान उपकरण',
         'diag-tool-desc': 'कृपया संक्रमित पत्ती की स्पष्ट फोटो चुनें।',
-        'upload-box-text': 'फोटो खींचने या चुनने के लिए टैप करें',
-        'btn-check': 'फसल स्वास्थ्य की जांच करें',
-        'btn-another': 'दूसरी फोटो चुनें',
+        'btn-check': 'फसल का विश्लेषण करें',
         'diag-ready': 'निदान तैयार है',
         'diag-res-title': 'निदान का परिणाम',
         'label-disease': 'बीमारी',
@@ -71,163 +52,146 @@ const translations = {
         'status-online': 'ऑनलाइन',
         'status-offline': 'ऑफलाइन',
         'analyzing': 'विश्लेषण किया जा रहा है...',
-        'confidence': 'भरोसा'
+        'confidence': 'भरोसा',
+        'offline-active': 'ऑफलाइन सक्रिय',
+        'step1-title': 'फोटो लें',
+        'step2-title': 'त्वरित विश्लेषण',
+        'step3-title': 'उपाय पाएं',
+        'hero-tagline': 'अपनी फसल को बीमारी से बचाएं।',
+        'hero-subline': 'ग्रामीण किसानों के लिए तत्काल, ऑफलाइन फसल निदान।',
+        'btn-start': 'निदान शुरू करें',
+        'how-it-works-title': 'यह कैसे काम करता है'
     }
 };
 
-// Diagnosis Data (Translatable)
 const diagnoses = [
     {
         id: 'healthy',
         confidence: '96%',
         type: 'healthy',
-        en: {
-            name: 'Healthy Crop',
-            remedy: 'No action needed. Your crop looks healthy!',
-            advice: 'Continue regular monitoring and maintain consistent irrigation.'
-        },
-        hi: {
-            name: 'स्वस्थ फसल',
-            remedy: 'किसी कार्रवाई की आवश्यकता नहीं है। आपकी फसल स्वस्थ दिख रही है!',
-            advice: 'नियमित निगरानी जारी रखें और सिंचाई बनाए रखें।'
-        }
+        en: { name: 'Healthy Crop', remedy: 'No action needed. Your crop looks healthy!', advice: 'Continue regular monitoring.' },
+        hi: { name: 'स्वस्थ फसल', remedy: 'किसी कार्रवाई की आवश्यकता नहीं है।', advice: 'नियमित निगरानी जारी रखें।' }
     },
     {
         id: 'early-blight',
         confidence: '82%',
         type: 'diseased',
-        en: {
-            name: 'Early Blight',
-            remedy: 'Use Copper-based Fungicide.',
-            advice: 'Remove infected lower leaves and ensure proper air circulation.'
-        },
-        hi: {
-            name: 'अगेती झुलसा (Early Blight)',
-            remedy: 'तांबा आधारित कवकनाशी (Fungicide) का प्रयोग करें।',
-            advice: 'संक्रमित निचली पत्तियों को हटा दें और हवा का संचार सुनिश्चित करें।'
-        }
+        en: { name: 'Early Blight', remedy: 'Use Copper-based Fungicide.', advice: 'Remove infected leaves.' },
+        hi: { name: 'अगेती झुलसा', remedy: 'तांबा आधारित कवकनाशी का प्रयोग करें।', advice: 'संक्रमित पत्तियों को हटा दें।' }
     },
     {
         id: 'yellow-rust',
         confidence: '78%',
         type: 'diseased',
-        en: {
-            name: 'Yellow Rust',
-            remedy: 'Apply Sulfur dust.',
-            advice: 'Avoid excessive nitrogen fertilization and plant resistant varieties in the next season.'
-        },
-        hi: {
-            name: 'पीला रतवा (Yellow Rust)',
-            remedy: 'सल्फर पाउडर का प्रयोग करें।',
-            advice: 'अत्यधिक नाइट्रोजन उर्वरक से बचें और अगले सीजन में प्रतिरोधी किस्में लगाएं।'
-        }
+        en: { name: 'Yellow Rust', remedy: 'Apply Sulfur dust.', advice: 'Avoid excessive nitrogen.' },
+        hi: { name: 'पीला रतवा', remedy: 'सल्फर पाउडर का प्रयोग करें।', advice: 'अत्यधिक नाइट्रोजन से बचें।' }
     }
 ];
 
-// Navigation Logic
-function showSection(sectionId) {
-    Object.values(sections).forEach(section => section.classList.remove('active'));
-    sections[sectionId].classList.add('active');
-}
+// --- Core Logic ---
 
-// Language Logic
-function changeLanguage(lang) {
-    currentLang = lang;
-    document.querySelectorAll('[data-i18n]').forEach(el => {
-        const key = el.getAttribute('data-i18n');
-        if (translations[lang][key]) {
-            el.innerText = translations[lang][key];
-        }
-    });
-
-    // Update status indicators
-    updateOnlineStatus();
-
-    // If a result is active, update it
-    if (sections.result.classList.contains('active') && currentResult) {
-        updateResultUI(currentResult);
-    }
-}
-
-langSelect.addEventListener('change', (e) => changeLanguage(e.target.value));
-
-// Event Listeners
-buttons.start.addEventListener('click', () => showSection('upload'));
-buttons.backHome.addEventListener('click', () => showSection('home'));
-buttons.newDiagnosis.addEventListener('click', () => {
-    resetUpload();
-    currentResult = null;
-    showSection('home');
-});
-
-buttons.reset.addEventListener('click', resetUpload);
-
-// Image Upload Logic
-imageInput.addEventListener('change', (e) => {
+// Handle File Selection (Robust)
+imageUpload.addEventListener('change', (e) => {
     const file = e.target.files[0];
     if (file) {
         const reader = new FileReader();
         reader.onload = (event) => {
-            imagePreview.src = event.target.result;
-            uploadBox.classList.add('hidden');
-            previewContainer.classList.remove('hidden');
+            console.log('Image loaded successfully');
+
+            // Targeted innerHTML replacement
+            previewContainer.innerHTML = `
+                <img src="${event.target.result}" class="preview-image" style="max-width:300px; display:block; margin: 20px auto; border-radius:10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                <button id="analyze-btn" class="btn primary-btn pill" style="padding:15px 30px; display:block; margin: 10px auto;">${translations[currentLang]['btn-check']}</button>
+            `;
+
+            // Attach listener immediately to new button
+            document.getElementById('analyze-btn').addEventListener('click', diagnoseCrop);
         };
         reader.readAsDataURL(file);
     }
 });
 
-function resetUpload() {
-    imageInput.value = '';
-    imagePreview.src = '';
-    uploadBox.classList.remove('hidden');
-    previewContainer.classList.add('hidden');
-}
+// Robust Diagnosis Flow
+function diagnoseCrop() {
+    const btn = document.getElementById('analyze-btn');
+    if (!btn) return;
 
-// Dummy Result Logic
-buttons.checkHealth.addEventListener('click', () => {
-    buttons.checkHealth.textContent = translations[currentLang]['analyzing'];
-    buttons.checkHealth.disabled = true;
+    btn.textContent = translations[currentLang]['analyzing'];
+    btn.disabled = true;
 
     setTimeout(() => {
+        // Randomly pick a result
         const result = diagnoses[Math.floor(Math.random() * diagnoses.length)];
         currentResult = result;
-        updateResultUI(result);
+        const content = result[currentLang];
+        const isHealthy = result.type === 'healthy';
 
-        buttons.checkHealth.textContent = translations[currentLang]['btn-check'];
-        buttons.checkHealth.disabled = false;
-        showSection('result');
-    }, 1500);
-});
+        // Define Icon and Border Class
+        const resultIcon = isHealthy ? '✅' : '⚠️';
+        const borderClass = isHealthy ? 'border-healthy' : 'border-diseased';
 
-function updateResultUI(result) {
-    const diseaseName = document.getElementById('disease-name');
-    const remedyText = document.getElementById('remedy-text');
-    const adviceText = document.getElementById('advice-text');
-    const resultCard = document.querySelector('.result-card');
+        // Prepare Remedies as Bullets
+        const remedyBullets = content.remedy.split('.').filter(s => s.trim().length > 0)
+            .map(s => `<li>${s.trim()}</li>`).join('');
 
-    const content = result[currentLang];
+        // Completely replace the diagnosisTool content with the Result Card
+        diagnosisTool.innerHTML = `
+            <div class="result-card-dynamic slide-up ${borderClass}">
+                <div class="result-icon">${resultIcon}</div>
+                <h2 class="result-title">${content.name}</h2>
+                <div class="confidence-container">
+                    <span class="confidence-text">${translations[currentLang]['confidence']}: ${result.confidence}</span>
+                    <div class="confidence-bar-bg">
+                        <div class="confidence-bar-fill" style="width: ${result.confidence}"></div>
+                    </div>
+                </div>
+                <div class="remedy-list">
+                    <h4>${translations[currentLang]['label-remedy']}</h4>
+                    <ul>
+                        ${remedyBullets}
+                        <li>${content.advice}</li>
+                    </ul>
+                </div>
+                <button class="btn primary-btn pill" onclick="location.reload()" style="padding: 12px 30px;">
+                    ${translations[currentLang]['btn-new']}
+                </button>
+            </div>
+        `;
 
-    // Remove old state classes
-    resultCard.classList.remove('healthy', 'diseased');
-    resultCard.classList.add(result.type);
-
-    // Update diagnosis name with confidence
-    const confLabel = translations[currentLang]['confidence'];
-    diseaseName.innerHTML = `${content.name} <span class="confidence-badge">(${result.confidence} ${confLabel})</span>`;
-
-    remedyText.textContent = content.remedy;
-    adviceText.textContent = content.advice;
+        window.scrollTo({ top: diagnosisTool.offsetTop - 100, behavior: 'smooth' });
+    }, 2000);
 }
 
-// Offline Status Monitor
-window.addEventListener('online', updateOnlineStatus);
-window.addEventListener('offline', updateOnlineStatus);
+function updateResultUI(result) {
+    // This function is now legacy as diagnoseCrop handles injection
+}
 
+// Reset Flow
+document.getElementById('new-diagnosis-btn').addEventListener('click', () => {
+    imageUpload.value = '';
+    previewContainer.innerHTML = '';
+    resultSection.classList.add('hidden');
+    diagnosisTool.classList.remove('hidden');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+});
+
+// --- UI Helpers ---
+
+// Language Toggle
+document.getElementById('lang-select').addEventListener('change', (e) => {
+    currentLang = e.target.value;
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        if (translations[currentLang][key]) el.innerText = translations[currentLang][key];
+    });
+    // Update active result if any
+    if (!resultSection.classList.contains('hidden') && currentResult) updateResultUI(currentResult);
+});
+
+// Offline Status
 function updateOnlineStatus() {
     const statusText = document.querySelector('.status-text');
     const indicator = document.getElementById('offline-status');
-    if (!statusText || !indicator) return;
-
     if (navigator.onLine) {
         statusText.textContent = translations[currentLang]['status-online'];
         indicator.classList.remove('offline');
@@ -236,12 +200,12 @@ function updateOnlineStatus() {
         indicator.classList.add('offline');
     }
 }
+window.addEventListener('online', updateOnlineStatus);
+window.addEventListener('offline', updateOnlineStatus);
 
-// Service Worker Registration
+// Service Worker
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./service-worker.js')
-            .then(reg => console.log('Service Worker registered', reg))
-            .catch(err => console.error('Service Worker registration failed', err));
+        navigator.serviceWorker.register('./service-worker.js').catch(console.error);
     });
 }

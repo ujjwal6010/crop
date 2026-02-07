@@ -164,7 +164,7 @@ async function triggerTwistOption(disease, confidence, fallbackSmsHref) {
 
     try {
         // Step 3: POST request to backend (with phone)
-        const response = await fetch('http://localhost:3000/send-alert', {
+        const response = await fetch('https://agriscan-backend-6iar.onrender.com/send-alert', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'

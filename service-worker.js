@@ -1,46 +1,63 @@
-const CACHE_NAME = 'crop-health-v10';
+const CACHE_NAME = 'crop-health-v2';
 const ASSETS = [
     './',
     './index.html',
     './style.css',
     './app.js',
-    './manifest.json',
-    'https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap'
+    './manifest.json'
 ];
 
-// Install Event
+// Install Event: Cache essential assets
 self.addEventListener('install', (event) => {
     event.waitUntil(
         caches.open(CACHE_NAME)
             .then((cache) => {
-                console.log('Caching assets');
+                console.log('Service Worker: Caching essential assets');
                 return cache.addAll(ASSETS);
             })
             .then(() => self.skipWaiting())
     );
 });
 
-// Activate Event
+// Activate Event: Cleanup old caches
 self.addEventListener('activate', (event) => {
     event.waitUntil(
-        caches.keys().then((keys) => {
+        caches.keys().then((cacheNames) => {
             return Promise.all(
-                keys.map((key) => {
-                    if (key !== CACHE_NAME) {
-                        return caches.delete(key);
+                cacheNames.map((cache) => {
+                    if (cache !== CACHE_NAME) {
+                        console.log('Service Worker: Clearing old cache', cache);
+                        return caches.delete(cache);
                     }
                 })
             );
         })
+            .then(() => self.clients.claim())
     );
 });
 
-// Fetch Event (Cache-First Strategy)
+// Fetch Event: Network First Strategy
 self.addEventListener('fetch', (event) => {
+    // We only want to handle GET requests
+    if (event.request.method !== 'GET') return;
+
     event.respondWith(
-        caches.match(event.request)
-            .then((cachedResponse) => {
-                return cachedResponse || fetch(event.request);
+        fetch(event.request)
+            .then((networkResponse) => {
+                // If network succeeds, clone response to cache and return
+                return caches.open(CACHE_NAME).then((cache) => {
+                    cache.put(event.request, networkResponse.clone());
+                    return networkResponse;
+                });
+            })
+            .catch(() => {
+                // If network fails (offline), try the cache
+                return caches.match(event.request).then((cachedResponse) => {
+                    return cachedResponse || new Response('Offline: Resource not available', {
+                        status: 503,
+                        statusText: 'Service Unavailable'
+                    });
+                });
             })
     );
 });

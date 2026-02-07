@@ -57,25 +57,44 @@
         </div>
     </header>
 
-    <!-- How it Works Section -->
+    <!-- How it Works Section (2x2 Grid - Minimal) -->
     <section class="how-it-works-section" id="how-it-works">
         <div class="section-container">
-            <h2 id="how-title" class="reveal" data-i18n="how-it-works-title">Methodology</h2>
-            <div class="how-it-works-grid">
-                <div class="step-card reveal">
-                    <div class="step-number">01</div>
-                    <h4 data-i18n="step1-title">Capture</h4>
-                    <p>Photograph the affected leaf in natural light.</p>
+            <!-- Header -->
+            <div class="how-header reveal">
+                <span class="eyebrow-small">Our Process</span>
+                <h2 id="how-title" data-i18n="how-it-works-title">How it Works</h2>
+            </div>
+
+            <!-- 2x2 Grid -->
+            <div class="how-grid-2x2 reveal">
+                <div class="grid-item">
+                    <div class="item-header">
+                        <span class="min-icon">⌖</span>
+                        <h3 data-i18n="step1-title">Capture</h3>
+                    </div>
+                    <p>Photograph the affected crop leaf in natural lighting for optimal analysis.</p>
                 </div>
-                <div class="step-card reveal">
-                    <div class="step-number">02</div>
-                    <h4 data-i18n="step2-title">Analyze</h4>
-                    <p>Our AI processes the specimen offline.</p>
+                <div class="grid-item">
+                    <div class="item-header">
+                        <span class="min-icon">✦</span>
+                        <h3 data-i18n="step2-title">Diagnosis</h3>
+                    </div>
+                    <p>Instant offline analysis powered by advanced AI recognition models.</p>
                 </div>
-                <div class="step-card reveal">
-                    <div class="step-number">03</div>
-                    <h4 data-i18n="step3-title">Prescribe</h4>
-                    <p>Receive expert remediation protocols.</p>
+                <div class="grid-item">
+                    <div class="item-header">
+                        <span class="min-icon">→</span>
+                        <h3 data-i18n="step3-title">Remedy</h3>
+                    </div>
+                    <p>Receive expert treatment plans tailored to your specific crop condition.</p>
+                </div>
+                <div class="grid-item">
+                    <div class="item-header">
+                        <span class="min-icon">◎</span>
+                        <h3>Monitor</h3>
+                    </div>
+                    <p>Track recovery progress over time with continuous health monitoring.</p>
                 </div>
             </div>
         </div>
@@ -108,7 +127,7 @@
 
     <!-- Footer -->
     <footer>
-        <div class="section-container">
+        <div class="section-container reveal">
             <p data-i18n="footer">&copy; 2026 CropHealth Agricultural Research Institute</p>
             <div id="offline-status" class="status-indicator">
                 <span class="dot"></span> <span class="status-text" data-i18n="status-online">Online</span>

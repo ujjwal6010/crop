@@ -3,6 +3,22 @@
 // YOLOv8 Classification Model for Tomato Disease
 // =============================================
 
+// =============================================
+// App Loading Screen - Hide after window load
+// =============================================
+window.addEventListener('load', () => {
+    setTimeout(() => {
+        const loader = document.getElementById('app-loader');
+        if (loader) {
+            loader.style.opacity = '0';
+            loader.style.transition = 'opacity 0.5s ease';
+            setTimeout(() => {
+                loader.style.display = 'none';
+            }, 500);
+        }
+    }, 1000); // 1 second delay for smooth feel
+});
+
 // --- Elements & IDs ---
 const imageUpload = document.getElementById('imageUpload');
 const previewContainer = document.getElementById('preview-container');
@@ -67,6 +83,139 @@ const MOCK_SHOPS = [
     { name: "Global Agri Store", dist: "3.5 km", stock: false },
     { name: "Village Co-op Society", dist: "0.8 km", stock: true }
 ];
+
+// =============================================
+// SMS Gateway Function (Twilio Backend)
+// Dual-State with Hindi/English translations
+// =============================================
+
+async function triggerTwistOption(disease, confidence, fallbackSmsHref) {
+    const btn = document.getElementById('sms-gateway-btn');
+    const btnText = document.getElementById('sms-btn-text');
+
+    if (!btn || !btnText) return;
+
+    // Store original state for reset
+    const originalText = btnText.textContent;
+    const originalBg = btn.style.background;
+    const originalColor = btn.style.color;
+
+    // i18n translations for button states
+    const stateText = {
+        loading: {
+            en: '📡 Connecting to Gateway...',
+            hi: '📡 गेटवे से कनेक्ट हो रहा है...'
+        },
+        success: {
+            en: '✅ Alert Sent to KVK Expert',
+            hi: '✅ अलर्ट KVK विशेषज्ञ को भेजा गया'
+        },
+        fallback: {
+            en: '⚠️ Opened Manual SMS',
+            hi: '⚠️ मैनुअल एसएमएस खुला'
+        }
+    };
+
+    // Step 1: Get phone from embedded input field
+    const phoneInput = document.getElementById('farmer-phone');
+    const farmerPhone = phoneInput ? phoneInput.value.trim() : '';
+
+    // Strict Validation: Must be exactly 10 digits
+    const phoneRegex = /^\d{10}$/;
+    const phoneError = document.getElementById('phone-error');
+
+    if (!phoneRegex.test(farmerPhone)) {
+        if (phoneInput) {
+            phoneInput.style.border = '1px solid #d32f2f';
+            phoneInput.classList.add('shake');
+
+            // Remove shake class after animation
+            setTimeout(() => {
+                phoneInput.classList.remove('shake');
+            }, 500);
+
+            // Focus the input
+            phoneInput.focus();
+        }
+
+        // Show inline error message
+        if (phoneError) {
+            phoneError.textContent = currentLang === 'hi'
+                ? 'कृपया एक मान्य 10-अंकीय नंबर दर्ज करें'
+                : 'Please enter a valid 10-digit number';
+            phoneError.style.display = 'block';
+        }
+        return;
+    }
+
+    // Reset input styling on valid entry
+    if (phoneInput) {
+        phoneInput.style.border = '1px solid #ddd';
+    }
+    if (phoneError) {
+        phoneError.style.display = 'none';
+    }
+
+    // Step 2: Disable button and show Loading State
+    btn.disabled = true;
+    btnText.textContent = stateText.loading[currentLang] || stateText.loading.en;
+    btn.style.background = '#e0e0e0';
+    btn.style.color = '#333';
+
+    try {
+        // Step 3: POST request to backend (with phone)
+        const response = await fetch('http://localhost:3000/send-alert', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                disease: disease,
+                confidence: confidence,
+                phone: farmerPhone.trim(),
+                lang: currentLang
+            })
+        });
+
+        // Step 3: Success State (status 200) - PERMANENT
+        if (response.ok) {
+            // Feather-style SVG checkmark (white stroke)
+            const checkSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 6px;"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
+
+            const successText = currentLang === 'hi'
+                ? 'अलर्ट KVK विशेषज्ञ को भेजा गया'
+                : 'ALERT SENT TO KVK EXPERT';
+
+            btn.innerHTML = `${checkSvg}<span>${successText}</span>`;
+            btn.style.background = '#2d4a22'; // AgriScan Green
+            btn.style.color = '#ffffff';
+            // Button stays disabled permanently - no reset
+        } else {
+            throw new Error('Server returned non-200 status');
+        }
+
+    } catch (error) {
+        // Step 4: Fallback - trigger manual SMS
+        console.warn('SMS Gateway failed, using fallback:', error.message);
+
+        btnText.textContent = stateText.fallback[currentLang] || stateText.fallback.en;
+        btn.style.background = '#e67e22';
+        btn.style.color = '#ffffff';
+
+        // Open manual SMS link
+        setTimeout(() => {
+            window.location.href = fallbackSmsHref;
+
+            // Reset button after 3-4 seconds
+            setTimeout(() => {
+                btn.disabled = false;
+                btnText.textContent = originalText;
+                btn.style.background = originalBg || '';
+                btn.style.color = originalColor || '';
+            }, 3500);
+        }, 500);
+    }
+}
 
 // Translations
 const translations = {
@@ -275,8 +424,11 @@ function rgbToHsl(r, g, b) {
 async function predict(imgElement) {
     if (!model) {
         console.error('Model not loaded');
+        loadModel();
         return null;
     }
+
+
 
     const inputTensor = preprocessImage(imgElement);
 
@@ -506,10 +658,15 @@ async function diagnoseCrop() {
                     <span>${t.smsBridge}</span>
                 </div>
                 <p style="font-size: 0.85rem; color: #4A4540; margin-bottom: 1rem; padding: 10px; background: #fff; border: 1px solid #D1C7BD;">${smsText}</p>
-                <a href="${smsHref}" class="btn primary-btn" style="display: flex; align-items: center; justify-content: center; gap: 8px; padding: 12px 20px; text-decoration: none;">
+                <input type="tel" id="farmer-phone" maxlength="10"
+                    placeholder="${currentLang === 'hi' ? 'अपना मोबाइल नंबर दर्ज करें' : 'Enter your mobile number'}" 
+                    style="width: 100%; padding: 12px; margin-bottom: 4px; border: 1px solid #ddd; border-radius: 4px; font-size: 16px; box-sizing: border-box; transition: border-color 0.3s;">
+                <small id="phone-error" style="color: #d32f2f; display: none; margin-bottom: 10px; font-size: 12px;">Please enter a valid 10-digit number</small>
+                <button id="sms-gateway-btn" class="btn primary-btn gateway-btn" onclick="triggerTwistOption('${diagnosisDisplay}', '${result.confidence}', '${smsHref}')" style="display: flex; align-items: center; justify-content: center; gap: 8px; padding: 12px 20px; width: 100%;">
                     <span class="icon" style="margin: 0;">${sendIcon}</span>
-                    ${t.sendSms}
-                </a>
+                    <span id="sms-btn-text">${t.sendSms}</span>
+                </button>
+                <div id="sms-gateway-status" class="gateway-status" style="display: none; margin-top: 10px; text-align: center; font-size: 0.9rem;"></div>
             </div>
 
             <!-- Market Linkage Section -->

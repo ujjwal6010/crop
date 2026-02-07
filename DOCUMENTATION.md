@@ -1027,4 +1027,4 @@ updateOnlineStatus();
 
 ---
 
-*Documentation generated for AgriScan PWA*
+*Documentation generated for AgriScan PWA *

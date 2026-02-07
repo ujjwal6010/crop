@@ -923,3 +923,135 @@ footer {
         display: none;
     }
 }
+
+/* =============================================
+   SMS GATEWAY BUTTON STATES
+============================================= */
+
+.gateway-btn {
+    position: relative;
+    transition: all 0.3s ease;
+    min-height: 48px;
+}
+
+.gateway-btn:disabled {
+    cursor: wait;
+}
+
+/* Connecting State */
+.gateway-btn.connecting {
+    background: #2d4a22;
+    animation: pulse-gateway 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse-gateway {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.7;
+    }
+}
+
+/* Success State */
+.gateway-btn.success {
+    background: #4CAF50;
+    cursor: default;
+}
+
+.gateway-btn.success:hover {
+    background: #4CAF50;
+}
+
+/* Fallback State */
+.gateway-btn.fallback {
+    background: #e67e22;
+}
+
+/* Status Message */
+.gateway-status {
+    padding: 8px 12px;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    letter-spacing: 0.02em;
+}
+
+.gateway-status.success {
+    background: rgba(76, 175, 80, 0.1);
+    color: #4CAF50;
+}
+
+.gateway-status.error {
+    background: rgba(230, 126, 34, 0.1);
+    color: #e67e22;
+}
+
+/* =============================================
+   FARMER PHONE INPUT STYLES
+============================================= */
+
+#farmer-phone {
+    width: 100%;
+    padding: 12px;
+    margin-bottom: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 16px;
+    box-sizing: border-box;
+    transition: border-color 0.3s, box-shadow 0.3s;
+}
+
+#farmer-phone:focus {
+    outline: none;
+    border-color: #2d4a22;
+    box-shadow: 0 0 5px rgba(45, 74, 34, 0.3);
+}
+
+/* Shake animation for validation */
+@keyframes shake {
+
+    0%,
+    100% {
+        transform: translateX(0);
+    }
+
+    20%,
+    60% {
+        transform: translateX(-5px);
+    }
+
+    40%,
+    80% {
+        transform: translateX(5px);
+    }
+}
+
+.shake {
+    animation: shake 0.4s ease-in-out;
+}
+
+/* =============================================
+   APP LOADING SCREEN
+============================================= */
+
+.loader-spinner {
+    width: 50px;
+    height: 50px;
+    border: 3px solid #e0e0e0;
+    border-top-color: #2d4a22;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}

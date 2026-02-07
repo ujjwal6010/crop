@@ -1,4 +1,4 @@
-const CACHE_NAME = 'agriscan-v39';
+const CACHE_NAME = 'agriscan-v40';
 const ASSETS = [
     './',
     './index.html',

@@ -344,16 +344,21 @@ async function diagnoseCrop() {
     }
 
     // *** Color Heuristic Pre-Filter ***
+    const alertSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`;
+    const refreshSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;vertical-align:middle;margin-right:6px;"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>`;
+
     if (!isPlantLike(previewImg)) {
         diagnosisTool.innerHTML = `
             <div class="result-card-dynamic slide-up border-diseased" style="border-color: #c0392b;">
-                <div class="result-icon" style="font-size: 3rem;">⚠️</div>
+                <div class="result-icon-container diseased" style="background: rgba(192,57,43,0.1); color: #c0392b;">
+                    ${alertSvg}
+                </div>
                 <h2 class="result-title" style="color: #c0392b;">No Leaf Detected</h2>
                 <p style="color: #4A4540; margin: 1.5rem 0;">Please upload a clear photo of a tomato leaf.</p>
                 <p style="color: #888; font-size: 0.85rem;">The image does not contain enough organic plant colors (green/yellow/brown).</p>
                 <p style="color: #888; font-size: 0.8rem;">Minimum required: ${PLANT_COLOR_THRESHOLD * 100}% plant-like pixels</p>
-                <button class="btn primary-btn" onclick="location.reload()" style="padding: 12px 30px; width: 100%; margin-top: 1.5rem;">
-                    🔄 Try Again
+                <button class="btn primary-btn" onclick="location.reload()" style="padding: 12px 30px; width: 100%; margin-top: 1.5rem; display: flex; align-items: center; justify-content: center;">
+                    ${refreshSvg} Try Again
                 </button>
             </div>
         `;
@@ -372,15 +377,19 @@ async function diagnoseCrop() {
 
     // Check confidence threshold
     if (result.rawConfidence < CONFIDENCE_THRESHOLD) {
+        const alertSvgConf = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`;
+        const refreshSvgConf = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;vertical-align:middle;margin-right:6px;"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>`;
         diagnosisTool.innerHTML = `
             <div class="result-card-dynamic slide-up border-diseased" style="border-color: #e67e22;">
-                <div class="result-icon" style="font-size: 3rem;">⚠️</div>
+                <div class="result-icon-container diseased" style="background: rgba(230,126,34,0.1); color: #e67e22;">
+                    ${alertSvgConf}
+                </div>
                 <h2 class="result-title" style="color: #e67e22;">Low Confidence</h2>
                 <p style="color: #4A4540; margin: 1.5rem 0;">Please ensure the leaf is well-lit and fills the frame.</p>
                 <p style="color: #888; font-size: 0.85rem;">Detected: ${result.classLabel[currentLang]} (${result.confidence}% confidence)</p>
                 <p style="color: #888; font-size: 0.8rem;">Minimum required: ${CONFIDENCE_THRESHOLD * 100}%</p>
-                <button class="btn primary-btn" onclick="location.reload()" style="padding: 12px 30px; width: 100%; margin-top: 1.5rem;">
-                    🔄 Try Again
+                <button class="btn primary-btn" onclick="location.reload()" style="padding: 12px 30px; width: 100%; margin-top: 1.5rem; display: flex; align-items: center; justify-content: center;">
+                    ${refreshSvgConf} Try Again
                 </button>
             </div>
         `;
@@ -394,8 +403,15 @@ async function diagnoseCrop() {
     const remedyData = REMEDIES[classId][currentLang];
     const diagnosisName = result.classLabel.en; // Use English for medicine lookup
 
-    // Define Icon and Border Class
-    const resultIcon = isHealthy ? '✅' : '⚠️';
+    // Define SVG Icons (Lucide-style)
+    const checkIcon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 6L9 17l-5-5"/></svg>`;
+    const alertIcon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`;
+    const broadcastIcon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9"/><path d="M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.5"/><circle cx="12" cy="12" r="2"/><path d="M16.2 7.8c2.3 2.3 2.3 6.1 0 8.5"/><path d="M19.1 4.9C23 8.8 23 15.1 19.1 19"/></svg>`;
+    const storeIcon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></svg>`;
+    const sendIcon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22,2 15,22 11,13 2,9 22,2"/></svg>`;
+
+    const resultIconClass = isHealthy ? 'healthy' : 'diseased';
+    const resultSvg = isHealthy ? checkIcon : alertIcon;
     const borderClass = isHealthy ? 'border-healthy' : 'border-diseased';
 
     // Prepare Remedies as Bullets
@@ -405,25 +421,59 @@ async function diagnoseCrop() {
     // Get recommended medicine
     const medicine = MEDICINES[diagnosisName] || 'Consult local expert';
 
-    // Generate SMS text
-    const smsText = `AgriScan Alert: ${diagnosisName} detected (Conf: ${result.confidence}%). Rx: ${medicine}. Please assist farmer.`;
+    // i18n strings for SMS Bridge & Market Linkage
+    const i18nStrings = {
+        en: {
+            alertPrefix: 'AgriScan Alert',
+            detected: 'detected',
+            assistFarmer: 'Please assist farmer',
+            inStock: 'In Stock',
+            outOfStock: 'Out of Stock',
+            smsBridge: 'SMS Bridge (Offline Support)',
+            sendSms: 'Send SMS to Expert',
+            nearbyShops: 'Nearby Shops'
+        },
+        hi: {
+            alertPrefix: 'AgriScan चेतावनी',
+            detected: 'पाया गया',
+            assistFarmer: 'कृपया किसान की सहायता करें',
+            inStock: 'स्टॉक में है',
+            outOfStock: 'स्टॉक में नहीं है',
+            smsBridge: 'SMS ब्रिज (ऑफलाइन सहायता)',
+            sendSms: 'विशेषज्ञ को SMS भेजें',
+            nearbyShops: 'आस-पास की दुकानें'
+        }
+    };
+    const t = i18nStrings[currentLang] || i18nStrings.en;
+
+    // Generate SMS text (localized)
+    const diagnosisDisplay = result.classLabel[currentLang];
+    const smsText = `${t.alertPrefix}: ${diagnosisDisplay} ${t.detected} (Conf: ${result.confidence}%). Rx: ${medicine}. ${t.assistFarmer}.`;
     const smsHref = `sms:18001801551?body=${encodeURIComponent(smsText)}`; // Kisan Call Center Helpline
 
-    // Generate shop list HTML
+    // Generate shop list HTML with minimalist design (localized)
     const shopListHTML = MOCK_SHOPS.map(shop => {
-        const stockStatus = shop.stock
-            ? '<span style="color: #27ae60;">✅ In Stock</span>'
-            : '<span style="color: #c0392b;">❌ Out of Stock</span>';
-        return `<li style="padding: 10px 0; border-bottom: 1px solid #D1C7BD;">
-            <strong>${shop.name}</strong> (${shop.dist})<br>
-            ${stockStatus}
-        </li>`;
+        const stockDotClass = shop.stock ? 'in-stock' : 'out-of-stock';
+        const stockText = shop.stock ? t.inStock : t.outOfStock;
+        const stockColor = shop.stock ? '#4CAF50' : '#e57373';
+        return `<div class="shop-item">
+            <div class="shop-info">
+                <div class="shop-name">${shop.name}</div>
+                <div class="shop-distance">${shop.dist}</div>
+            </div>
+            <div class="stock-status" style="color: ${stockColor};">
+                <span class="status-dot ${stockDotClass}"></span>
+                ${stockText}
+            </div>
+        </div>`;
     }).join('');
 
-    // Display Result Card with SMS Bridge & Market Linkage
+    // Display Result Card with Minimalist Icons
     diagnosisTool.innerHTML = `
         <div class="result-card-dynamic slide-up ${borderClass}">
-            <div class="result-icon">${resultIcon}</div>
+            <div class="result-icon-container ${resultIconClass}">
+                ${resultSvg}
+            </div>
             <h2 class="result-title">${result.classLabel[currentLang]}</h2>
             <div class="confidence-container">
                 <span class="confidence-text">${translations[currentLang]['confidence']}: ${result.confidence}%</span>
@@ -441,19 +491,26 @@ async function diagnoseCrop() {
 
             <!-- SMS Bridge Section -->
             <div class="sms-bridge-section" style="margin-top: 2rem; padding: 1.5rem; background: #F0EBE5; border: 1px solid #D1C7BD;">
-                <h4 style="margin-bottom: 1rem; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px;">📱 SMS Bridge (Offline Support)</h4>
+                <div class="section-header-icon">
+                    <span class="icon icon-primary">${broadcastIcon}</span>
+                    <span>${t.smsBridge}</span>
+                </div>
                 <p style="font-size: 0.85rem; color: #4A4540; margin-bottom: 1rem; padding: 10px; background: #fff; border: 1px solid #D1C7BD;">${smsText}</p>
-                <a href="${smsHref}" class="btn primary-btn" style="display: block; text-align: center; padding: 12px 20px; text-decoration: none;">
-                    📤 Send SMS to Expert
+                <a href="${smsHref}" class="btn primary-btn" style="display: flex; align-items: center; justify-content: center; gap: 8px; padding: 12px 20px; text-decoration: none;">
+                    <span class="icon" style="margin: 0;">${sendIcon}</span>
+                    ${t.sendSms}
                 </a>
             </div>
 
             <!-- Market Linkage Section -->
             <div class="market-linkage-section" style="margin-top: 1.5rem; padding: 1.5rem; background: #F9F7F5; border: 1px solid #D1C7BD;">
-                <h4 style="margin-bottom: 1rem; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px;">🏪 Nearby Shops - ${medicine}</h4>
-                <ul style="list-style: none; padding: 0; margin: 0;">
+                <div class="section-header-icon">
+                    <span class="icon icon-primary">${storeIcon}</span>
+                    <span>${t.nearbyShops} — ${medicine}</span>
+                </div>
+                <div class="shop-list">
                     ${shopListHTML}
-                </ul>
+                </div>
             </div>
 
             <button class="btn primary-btn" onclick="location.reload()" style="padding: 12px 30px; width: 100%; margin-top: 1.5rem;">
@@ -565,3 +622,25 @@ const revealObserver = new IntersectionObserver((entries) => {
 document.querySelectorAll('.reveal').forEach(el => {
     revealObserver.observe(el);
 });
+
+// =============================================
+// Hamburger Menu Toggle (Mobile)
+// =============================================
+
+const hamburgerBtn = document.getElementById('hamburger-btn');
+const navLinks = document.getElementById('nav-links');
+
+if (hamburgerBtn && navLinks) {
+    hamburgerBtn.addEventListener('click', () => {
+        hamburgerBtn.classList.toggle('active');
+        navLinks.classList.toggle('active');
+    });
+
+    // Close menu when a nav link is clicked
+    navLinks.querySelectorAll('a').forEach(link => {
+        link.addEventListener('click', () => {
+            hamburgerBtn.classList.remove('active');
+            navLinks.classList.remove('active');
+        });
+    });
+}

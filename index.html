@@ -29,17 +29,28 @@
     <nav class="navbar">
         <div class="nav-content">
             <a href="/" id="brand-logo" class="brand">AgriScan</a>
-            <ul class="nav-links">
+
+            <!-- Mobile Menu Toggle -->
+            <button class="hamburger-btn" id="hamburger-btn" aria-label="Toggle menu">
+                <span class="hamburger-line"></span>
+                <span class="hamburger-line"></span>
+                <span class="hamburger-line"></span>
+            </button>
+
+            <!-- Navigation Links (hidden on mobile by default) -->
+            <ul class="nav-links" id="nav-links">
                 <li><a href="#home" id="nav-home" data-i18n="nav-home">Home</a></li>
                 <li><a href="#how-it-works" id="nav-about" data-i18n="nav-about">About</a></li>
                 <li><a href="#diagnosis-tool" id="nav-contact" data-i18n="nav-contact">Diagnose</a></li>
             </ul>
+
+            <!-- Actions (Login + Language) -->
             <div class="nav-actions">
-                <button class="btn ghost-btn" data-i18n="btn-login">Login</button>
                 <select id="lang-select" class="lang-dropdown">
                     <option value="en">EN</option>
                     <option value="hi">HI</option>
                 </select>
+                <button class="btn ghost-btn" data-i18n="btn-login">Login</button>
             </div>
         </div>
     </nav>

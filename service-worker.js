@@ -1,4 +1,4 @@
-const CACHE_NAME = 'crop-health-v12';
+const CACHE_NAME = 'crop-health-v16';
 const ASSETS = [
     './',
     './index.html',

@@ -4,106 +4,96 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CropHealth AI - Professional Crop Diagnosis</title>
+    <title>CropHealth AI - Agricultural Research Institute</title>
     <meta name="description"
-        content="Instant, offline crop diagnosis for rural farmers. Identify diseases and get remedies anywhere.">
-    <meta name="theme-color" content="#1b5e20">
+        content="Professional-grade crop diagnosis powered by AI. Precision agriculture for modern farmers.">
+    <meta name="theme-color" content="#264639">
     <link rel="manifest" href="manifest.json">
     <link rel="stylesheet" href="style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Inter:wght@300;400&display=swap"
+        rel="stylesheet">
 </head>
 
 <body>
-    <!-- 🟢 Offline Badge -->
+    <!-- Offline Badge -->
     <div id="offline-badge" class="offline-badge">
-        <span>🟢</span> <span data-i18n="offline-active">Offline Active</span>
+        <span data-i18n="offline-active">Offline Active</span>
     </div>
 
-    <!-- 🧭 Professional Sticky Navbar -->
+    <!-- Navbar -->
     <nav class="navbar">
         <div class="nav-content">
-            <div class="brand">🌿 <span>CropHealth AI</span></div>
+            <a href="/" id="brand-logo" class="brand">CropHealth</a>
             <ul class="nav-links">
                 <li><a href="#home" id="nav-home" data-i18n="nav-home">Home</a></li>
                 <li><a href="#how-it-works" id="nav-about" data-i18n="nav-about">About</a></li>
-                <li><a href="#contact" id="nav-contact" data-i18n="nav-contact">Contact</a></li>
+                <li><a href="#diagnosis-tool" id="nav-contact" data-i18n="nav-contact">Diagnose</a></li>
             </ul>
             <div class="nav-actions">
-                <button class="btn login-btn" data-i18n="btn-login">Login</button>
-                <div class="lang-container">
-                    <select id="lang-select" class="lang-dropdown">
-                        <option value="en">English</option>
-                        <option value="hi">हिंदी (Hindi)</option>
-                    </select>
-                </div>
+                <button class="btn ghost-btn" data-i18n="btn-login">Login</button>
+                <select id="lang-select" class="lang-dropdown">
+                    <option value="en">EN</option>
+                    <option value="hi">HI</option>
+                </select>
             </div>
         </div>
     </nav>
 
-    <!-- 🏠 Hero Header (Dark Forest Green) -->
+    <!-- Hero Header -->
     <header class="hero-header" id="home">
-        <div class="hero-overlay"></div>
         <div class="hero-content">
-            <h1 id="hero-title" data-i18n="hero-tagline">Save Your Harvest from Disease.</h1>
-            <p id="hero-subtitle" data-i18n="hero-subline">Instant, offline crop diagnosis for rural farmers.
-                Professional-grade AI support
-                in your pocket.</p>
-            <div class="hero-btns">
-                <a href="#diagnosis-tool" id="hero-cta" class="btn primary-btn pill" data-i18n="btn-start">Start
-                    Diagnosis</a>
-                <a href="#how-it-works" class="btn secondary-btn pill outline" data-i18n="btn-learn">Learn More</a>
+            <span class="eyebrow reveal">AI-Powered Diagnostics</span>
+            <h1 id="hero-title" class="reveal" data-i18n="hero-tagline">Precision Diagnosis for Your <em>Harvest</em>.
+            </h1>
+            <p id="hero-subtitle" class="reveal" data-i18n="hero-subline">Instant, offline crop analysis powered by
+                agricultural AI. Professional-grade insights, anywhere.</p>
+            <div class="hero-btns reveal">
+                <a href="#diagnosis-tool" id="hero-cta" class="btn primary-btn" data-i18n="btn-start">Begin Analysis</a>
+                <a href="#how-it-works" class="btn ghost-btn" data-i18n="btn-learn">Learn More</a>
             </div>
-        </div>
-        <!-- Optional bottom curve shape can be handled via CSS masking or an SVG -->
-        <div class="hero-wave">
-            <svg viewBox="0 0 1440 320">
-                <path fill="#ffffff" fill-opacity="1"
-                    d="M0,192L48,197.3C96,203,192,213,288,192C384,171,480,117,576,112C672,107,768,149,864,154.7C960,160,1056,128,1152,112C1248,96,1344,96,1392,96L1440,96L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z">
-                </path>
-            </svg>
         </div>
     </header>
 
-    <!-- 🛠 How it Works Section (Modern Cards) -->
+    <!-- How it Works Section -->
     <section class="how-it-works-section" id="how-it-works">
         <div class="section-container">
-            <h2 id="how-title" data-i18n="how-it-works-title">How it Works</h2>
+            <h2 id="how-title" class="reveal" data-i18n="how-it-works-title">Methodology</h2>
             <div class="how-it-works-grid">
-                <div class="step-card">
-                    <div class="step-icon">📸</div>
-                    <h4 data-i18n="step1-title">Take Photo</h4>
-                    <p>Snap a clear photo of the infected crop leaf.</p>
+                <div class="step-card reveal">
+                    <div class="step-number">01</div>
+                    <h4 data-i18n="step1-title">Capture</h4>
+                    <p>Photograph the affected leaf in natural light.</p>
                 </div>
-                <div class="step-card">
-                    <div class="step-icon">⚡</div>
-                    <h4 data-i18n="step2-title">Instant Analysis</h4>
-                    <p>Our AI processes the image offline in seconds.</p>
+                <div class="step-card reveal">
+                    <div class="step-number">02</div>
+                    <h4 data-i18n="step2-title">Analyze</h4>
+                    <p>Our AI processes the specimen offline.</p>
                 </div>
-                <div class="step-card">
-                    <div class="step-icon">🍃</div>
-                    <h4 data-i18n="step3-title">Get Remedy</h4>
-                    <p>Receive expert advice and treatment plans instantly.</p>
+                <div class="step-card reveal">
+                    <div class="step-number">03</div>
+                    <h4 data-i18n="step3-title">Prescribe</h4>
+                    <p>Receive expert remediation protocols.</p>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- 🔬 Diagnosis Tool Section (Drop Zone) -->
+    <!-- Diagnosis Tool Section -->
     <section id="diagnosis-tool" class="diagnosis-section">
         <div class="section-container">
-            <div class="tool-card">
-                <h2 data-i18n="diag-tool-title">Diagnosis Tool</h2>
-                <p data-i18n="diag-tool-desc" class="desc-text">Select or drag a clear photo of the infected leaf below.
-                </p>
+            <div class="tool-card reveal">
+                <h2 data-i18n="diag-tool-title">Diagnostic Laboratory</h2>
+                <p data-i18n="diag-tool-desc" class="desc-text">Select or capture a specimen image for analysis.</p>
 
                 <div class="upload-container">
                     <input type="file" id="imageUpload" accept="image/*" style="display:none">
                     <label for="imageUpload" class="drop-zone">
                         <div class="drop-zone-content">
-                            <span class="drop-icon">📤</span>
-                            <span id="upload-btn-text" data-i18n="upload-box-text">Tap to Upload or Capture Image</span>
+                            <span class="drop-icon">⬆</span>
+                            <span id="upload-btn-text" data-i18n="upload-box-text">Upload Specimen</span>
                         </div>
                     </label>
 
@@ -113,13 +103,13 @@
         </div>
     </section>
 
-    <!-- 📋 Result Section (Hidden, but kept for JS structure if needed) -->
+    <!-- Result Section -->
     <section id="result-section" class="hidden"></section>
 
-    <!-- 👣 Footer -->
+    <!-- Footer -->
     <footer>
         <div class="section-container">
-            <p data-i18n="footer">&copy; 2026 Offline Crop Health Diagnostic System</p>
+            <p data-i18n="footer">&copy; 2026 CropHealth Agricultural Research Institute</p>
             <div id="offline-status" class="status-indicator">
                 <span class="dot"></span> <span class="status-text" data-i18n="status-online">Online</span>
             </div>

@@ -4,10 +4,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CropHealth AI - Save Your Harvest</title>
+    <title>CropHealth AI - Professional Crop Diagnosis</title>
     <meta name="description"
         content="Instant, offline crop diagnosis for rural farmers. Identify diseases and get remedies anywhere.">
-    <meta name="theme-color" content="#2e7d32">
+    <meta name="theme-color" content="#1b5e20">
     <link rel="manifest" href="manifest.json">
     <link rel="stylesheet" href="style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -21,98 +21,100 @@
         <span>🟢</span> <span data-i18n="offline-active">Offline Active</span>
     </div>
 
-    <!-- 🧭 Sticky Navbar -->
+    <!-- 🧭 Professional Sticky Navbar -->
     <nav class="navbar">
         <div class="nav-content">
-            <div class="brand">🌿 <span data-i18n="title">CropHealth AI</span></div>
-            <div class="lang-container">
-                <select id="lang-select" class="lang-dropdown">
-                    <option value="en">English</option>
-                    <option value="hi">हिंदी (Hindi)</option>
-                </select>
+            <div class="brand">🌿 <span>CropHealth AI</span></div>
+            <ul class="nav-links">
+                <li><a href="#home" id="nav-home" data-i18n="nav-home">Home</a></li>
+                <li><a href="#how-it-works" id="nav-about" data-i18n="nav-about">About</a></li>
+                <li><a href="#contact" id="nav-contact" data-i18n="nav-contact">Contact</a></li>
+            </ul>
+            <div class="nav-actions">
+                <button class="btn login-btn" data-i18n="btn-login">Login</button>
+                <div class="lang-container">
+                    <select id="lang-select" class="lang-dropdown">
+                        <option value="en">English</option>
+                        <option value="hi">हिंदी (Hindi)</option>
+                    </select>
+                </div>
             </div>
         </div>
     </nav>
 
-    <!-- 🏠 Hero Section -->
-    <header class="hero-section" id="home-section">
+    <!-- 🏠 Hero Header (Dark Forest Green) -->
+    <header class="hero-header" id="home">
+        <div class="hero-overlay"></div>
         <div class="hero-content">
-            <h1 data-i18n="hero-tagline">Save Your Harvest from Disease.</h1>
-            <p data-i18n="hero-subline">Instant, offline crop diagnosis for rural farmers.</p>
-            <a href="#diagnosis-tool" class="btn primary-btn pill large-cta" data-i18n="btn-start" id="start-btn">Start
-                Diagnosis</a>
+            <h1 id="hero-title" data-i18n="hero-tagline">Save Your Harvest from Disease.</h1>
+            <p id="hero-subtitle" data-i18n="hero-subline">Instant, offline crop diagnosis for rural farmers.
+                Professional-grade AI support
+                in your pocket.</p>
+            <div class="hero-btns">
+                <a href="#diagnosis-tool" id="hero-cta" class="btn primary-btn pill" data-i18n="btn-start">Start
+                    Diagnosis</a>
+                <a href="#how-it-works" class="btn secondary-btn pill outline" data-i18n="btn-learn">Learn More</a>
+            </div>
+        </div>
+        <!-- Optional bottom curve shape can be handled via CSS masking or an SVG -->
+        <div class="hero-wave">
+            <svg viewBox="0 0 1440 320">
+                <path fill="#ffffff" fill-opacity="1"
+                    d="M0,192L48,197.3C96,203,192,213,288,192C384,171,480,117,576,112C672,107,768,149,864,154.7C960,160,1056,128,1152,112C1248,96,1344,96,1392,96L1440,96L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z">
+                </path>
+            </svg>
         </div>
     </header>
 
-    <!-- 🛠 How it Works Section -->
-    <section class="how-it-works-section">
+    <!-- 🛠 How it Works Section (Modern Cards) -->
+    <section class="how-it-works-section" id="how-it-works">
         <div class="section-container">
-            <h2 data-i18n="how-it-works-title">How it Works</h2>
+            <h2 id="how-title" data-i18n="how-it-works-title">How it Works</h2>
             <div class="how-it-works-grid">
-                <div class="step">
+                <div class="step-card">
                     <div class="step-icon">📸</div>
                     <h4 data-i18n="step1-title">Take Photo</h4>
+                    <p>Snap a clear photo of the infected crop leaf.</p>
                 </div>
-                <div class="step">
+                <div class="step-card">
                     <div class="step-icon">⚡</div>
                     <h4 data-i18n="step2-title">Instant Analysis</h4>
+                    <p>Our AI processes the image offline in seconds.</p>
                 </div>
-                <div class="step">
+                <div class="step-card">
                     <div class="step-icon">🍃</div>
                     <h4 data-i18n="step3-title">Get Remedy</h4>
+                    <p>Receive expert advice and treatment plans instantly.</p>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- 🔬 Diagnosis Tool Section -->
+    <!-- 🔬 Diagnosis Tool Section (Drop Zone) -->
     <section id="diagnosis-tool" class="diagnosis-section">
         <div class="section-container">
             <div class="tool-card">
                 <h2 data-i18n="diag-tool-title">Diagnosis Tool</h2>
-                <p data-i18n="diag-tool-desc" class="desc-text">Please select a clear photo of the infected leaf.</p>
+                <p data-i18n="diag-tool-desc" class="desc-text">Select or drag a clear photo of the infected leaf below.
+                </p>
 
                 <div class="upload-container">
-                    <!-- Robust File Input & Label -->
                     <input type="file" id="imageUpload" accept="image/*" style="display:none">
-                    <label for="imageUpload" class="file-upload-btn upload-btn" data-i18n="btn-upload">
-                        Upload Leaf Image
+                    <label for="imageUpload" class="drop-zone">
+                        <div class="drop-zone-content">
+                            <span class="drop-icon">📤</span>
+                            <span id="upload-btn-text" data-i18n="upload-box-text">Tap to Upload or Capture Image</span>
+                        </div>
                     </label>
 
-                    <!-- Empty div for Dynamic Injection -->
                     <div id="preview-container"></div>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- 📋 Result Section -->
-    <section id="result-section" class="hidden">
-        <div class="section-container">
-            <div class="result-card professional">
-                <div class="result-header">
-                    <span class="status-badge" data-i18n="diag-ready">Diagnosis Ready</span>
-                    <h2 data-i18n="diag-res-title">Diagnosis Result</h2>
-                </div>
-                <div class="result-content">
-                    <div class="result-item">
-                        <h3 data-i18n="label-disease">Detected Disease</h3>
-                        <p id="disease-name" class="highlight"></p>
-                    </div>
-                    <div class="result-item">
-                        <h3 data-i18n="label-remedy">Recommended Remedy</h3>
-                        <p id="remedy-text"></p>
-                    </div>
-                    <div class="result-item">
-                        <h3 data-i18n="label-advice">Expert Advice</h3>
-                        <p id="advice-text"></p>
-                    </div>
-                </div>
-                <button id="new-diagnosis-btn" class="btn primary-btn pill" data-i18n="btn-new">Start New
-                    Diagnosis</button>
-            </div>
-        </div>
-    </section>
+    <!-- 📋 Result Section (Hidden, but kept for JS structure if needed) -->
+    <section id="result-section" class="hidden"></section>
 
     <!-- 👣 Footer -->
     <footer>

@@ -2,8 +2,7 @@
 const imageUpload = document.getElementById('imageUpload');
 const previewContainer = document.getElementById('preview-container');
 const diagnosisTool = document.getElementById('diagnosis-tool');
-const resultSection = document.getElementById('result-section');
-const homeSection = document.getElementById('home-section');
+const homeSection = document.getElementById('home');
 
 // Language & State
 let currentLang = 'en';
@@ -11,56 +10,56 @@ let currentResult = null;
 
 const translations = {
     en: {
-        'title': 'CropHealth AI',
-        'btn-upload': 'Upload Leaf Image',
-        'diag-tool-title': 'Diagnosis Tool',
-        'diag-tool-desc': 'Please select a clear photo of the infected leaf.',
-        'btn-check': 'Analyze Crop',
-        'diag-ready': 'Diagnosis Ready',
-        'diag-res-title': 'Diagnosis Result',
-        'label-disease': 'Disease',
-        'label-remedy': 'Remedy',
-        'label-advice': 'Advice',
-        'btn-new': 'Start New Diagnosis',
-        'footer': '© 2026 Offline Crop Health Diagnostic System',
-        'status-online': 'Online',
-        'status-offline': 'Offline',
-        'analyzing': 'Analyzing...',
-        'confidence': 'Confidence',
-        'offline-active': 'Offline Active',
+        'nav-home': 'Home',
+        'nav-about': 'About',
+        'nav-contact': 'Contact',
+        'hero-title': 'Save Your Harvest from Disease.',
+        'hero-subtitle': 'Instant, offline crop diagnosis for rural farmers. Professional-grade AI support in your pocket.',
+        'hero-cta': 'Start Diagnosis',
+        'btn-learn': 'Learn More',
+        'how-title': 'How it Works',
         'step1-title': 'Take Photo',
         'step2-title': 'Instant Analysis',
         'step3-title': 'Get Remedy',
-        'hero-tagline': 'Save Your Harvest from Disease.',
-        'hero-subline': 'Instant, offline crop diagnosis for rural farmers.',
-        'btn-start': 'Start Diagnosis',
-        'how-it-works-title': 'How it Works'
+        'diag-tool-title': 'Diagnosis Tool',
+        'diag-tool-desc': 'Select or drag a clear photo of the infected leaf below.',
+        'upload-btn-text': 'Tap to Upload or Capture Image',
+        'btn-check': 'Analyze Crop',
+        'analyzing': 'Analyzing...',
+        'confidence': 'Confidence',
+        'label-remedy': 'Remedy',
+        'btn-new': 'Start New Diagnosis',
+        'offline-active': 'Offline Active',
+        'status-online': 'Online',
+        'status-offline': 'Offline',
+        'footer': '© 2026 Offline Crop Health Diagnostic System',
+        'btn-login': 'Login'
     },
     hi: {
-        'title': 'फसल स्वास्थ्य AI',
-        'btn-upload': 'पत्ती की फोटो अपलोड करें',
-        'diag-tool-title': 'निदान उपकरण',
-        'diag-tool-desc': 'कृपया संक्रमित पत्ती की स्पष्ट फोटो चुनें।',
-        'btn-check': 'फसल का विश्लेषण करें',
-        'diag-ready': 'निदान तैयार है',
-        'diag-res-title': 'निदान का परिणाम',
-        'label-disease': 'बीमारी',
-        'label-remedy': 'उपाय',
-        'label-advice': 'सलाह',
-        'btn-new': 'नया निदान शुरू करें',
-        'footer': '© 2026 ऑफलाइन फसल स्वास्थ्य निदान प्रणाली',
-        'status-online': 'ऑनलाइन',
-        'status-offline': 'ऑफलाइन',
-        'analyzing': 'विश्लेषण किया जा रहा है...',
-        'confidence': 'भरोसा',
-        'offline-active': 'ऑफलाइन सक्रिय',
+        'nav-home': 'होम',
+        'nav-about': 'बारे में',
+        'nav-contact': 'संपर्क',
+        'hero-title': 'अपनी फसल को बीमारी से बचाएं।',
+        'hero-subtitle': 'ग्रामीण किसानों के लिए तत्काल, ऑफलाइन फसल निदान। आपकी जेब में पेशेवर-ग्रेड AI सहायता।',
+        'hero-cta': 'निदान शुरू करें',
+        'btn-learn': 'और जानें',
+        'how-title': 'यह कैसे काम करता है',
         'step1-title': 'फोटो लें',
         'step2-title': 'त्वरित विश्लेषण',
         'step3-title': 'उपाय पाएं',
-        'hero-tagline': 'अपनी फसल को बीमारी से बचाएं।',
-        'hero-subline': 'ग्रामीण किसानों के लिए तत्काल, ऑफलाइन फसल निदान।',
-        'btn-start': 'निदान शुरू करें',
-        'how-it-works-title': 'यह कैसे काम करता है'
+        'diag-tool-title': 'निदान उपकरण',
+        'diag-tool-desc': 'कृपया संक्रमित पत्ती की स्पष्ट फोटो चुनें।',
+        'upload-btn-text': 'अपलोड करने या फोटो लेने के लिए टैप करें',
+        'btn-check': 'फसल का विश्लेषण करें',
+        'analyzing': 'विश्लेषण किया जा रहा है...',
+        'confidence': 'भरोसा',
+        'label-remedy': 'उपाय',
+        'btn-new': 'नया निदान शुरू करें',
+        'offline-active': 'ऑफलाइन सक्रिय',
+        'status-online': 'ऑनलाइन',
+        'status-offline': 'ऑफलाइन',
+        'footer': '© 2026 ऑफलाइन फसल स्वास्थ्य निदान प्रणाली',
+        'btn-login': 'लॉगिन'
     }
 };
 
@@ -70,7 +69,7 @@ const diagnoses = [
         confidence: '96%',
         type: 'healthy',
         en: { name: 'Healthy Crop', remedy: 'No action needed. Your crop looks healthy!', advice: 'Continue regular monitoring.' },
-        hi: { name: 'स्वस्थ फसल', remedy: 'किसी कार्रवाई की आवश्यकता नहीं है।', advice: 'नियमित निगरानी जारी रखें।' }
+        hi: { name: 'स्वस्थ फसल', remedy: 'किसी कार्रवाई की आवश्यकता नहीं है। आपकी फसल स्वस्थ दिख रही है!', advice: 'नियमित निगरानी जारी रखें।' }
     },
     {
         id: 'early-blight',
@@ -100,7 +99,7 @@ imageUpload.addEventListener('change', (e) => {
 
             // Targeted innerHTML replacement
             previewContainer.innerHTML = `
-                <img src="${event.target.result}" class="preview-image" style="max-width:300px; display:block; margin: 20px auto; border-radius:10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                <img src="${event.target.result}" class="preview-image">
                 <button id="analyze-btn" class="btn primary-btn pill" style="padding:15px 30px; display:block; margin: 10px auto;">${translations[currentLang]['btn-check']}</button>
             `;
 
@@ -162,33 +161,62 @@ function diagnoseCrop() {
     }, 2000);
 }
 
-function updateResultUI(result) {
-    // This function is now legacy as diagnoseCrop handles injection
-}
-
-// Reset Flow
-document.getElementById('new-diagnosis-btn').addEventListener('click', () => {
-    imageUpload.value = '';
-    previewContainer.innerHTML = '';
-    resultSection.classList.add('hidden');
-    diagnosisTool.classList.remove('hidden');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-});
-
-// --- UI Helpers ---
-
 // Language Toggle
 document.getElementById('lang-select').addEventListener('change', (e) => {
     currentLang = e.target.value;
-    document.querySelectorAll('[data-i18n]').forEach(el => {
-        const key = el.getAttribute('data-i18n');
-        if (translations[currentLang][key]) el.innerText = translations[currentLang][key];
-    });
-    // Update active result if any
-    if (!resultSection.classList.contains('hidden') && currentResult) updateResultUI(currentResult);
+    updateLanguageUI();
 });
 
-// Offline Status
+function updateLanguageUI() {
+    // 1. Direct ID Binding (as requested for reliability)
+    const elementsToUpdate = [
+        'nav-home', 'nav-about', 'nav-contact', 'hero-title',
+        'hero-subtitle', 'hero-cta', 'how-title', 'upload-btn-text'
+    ];
+
+    elementsToUpdate.forEach(id => {
+        const el = document.getElementById(id);
+        if (el && translations[currentLang][id]) {
+            el.innerText = translations[currentLang][id];
+        }
+    });
+
+    // 2. Data Attribute Binding (for remaining items)
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        if (translations[currentLang][key]) {
+            el.innerText = translations[currentLang][key];
+        }
+    });
+
+    // Update active results if any
+    const btnNew = document.querySelector('.btn-new');
+    if (btnNew) btnNew.textContent = translations[currentLang]['btn-new'];
+}
+
+// --- Scroll Spy Logic ---
+window.addEventListener('scroll', () => {
+    const sections = [
+        { id: '#home', el: document.getElementById('home') },
+        { id: '#diagnosis-tool', el: document.getElementById('diagnosis-tool') }
+    ];
+
+    let currentSection = '';
+    sections.forEach(sec => {
+        if (!sec.el) return;
+        const rect = sec.el.getBoundingClientRect();
+        // If element is in middle of viewport
+        if (rect.top <= 150 && rect.bottom >= 150) {
+            currentSection = sec.id;
+        }
+    });
+
+    if (currentSection && window.location.hash !== currentSection) {
+        history.replaceState(null, null, currentSection);
+    }
+});
+
+// --- Offline Status ---
 function updateOnlineStatus() {
     const statusText = document.querySelector('.status-text');
     const indicator = document.getElementById('offline-status');
@@ -203,7 +231,7 @@ function updateOnlineStatus() {
 window.addEventListener('online', updateOnlineStatus);
 window.addEventListener('offline', updateOnlineStatus);
 
-// Service Worker
+// Service Worker Registration
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
         navigator.serviceWorker.register('./service-worker.js').catch(console.error);

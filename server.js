@@ -34,7 +34,7 @@ function getTwilioClient() {
 
 app.post('/send-alert', async (req, res) => {
     try {
-        const { disease, confidence, location, phone } = req.body;
+        const { disease, confidence, location, phone, lang } = req.body;
 
         // Validate required fields
         if (!disease || !confidence) {
@@ -44,8 +44,8 @@ app.post('/send-alert', async (req, res) => {
             });
         }
 
-        // Format professional alert message
-        const alertMessage = formatAlertMessage(disease, confidence, location, phone);
+        // Format professional alert message (with language support)
+        const alertMessage = formatAlertMessage(disease, confidence, location, phone, lang);
 
         // Check Twilio configuration
         const client = getTwilioClient();
@@ -97,13 +97,23 @@ app.post('/send-alert', async (req, res) => {
 // Format Alert Message
 // =============================================
 
-function formatAlertMessage(disease, confidence, location, phone) {
-    // Format: "AgriScan: [Disease] ([Conf]%). Farmer: [Phone]. Loc: [Loc]. Call now."
-    // Kept under 160 chars for Twilio Trial
+function formatAlertMessage(disease, confidence, location, phone, lang) {
+    // Format varies by language, kept under 160 chars for Twilio Trial
 
     let shortLoc = location ? location.split(',')[0] : 'N/A';
     let farmerPhone = phone || 'N/A';
 
+    // Punjabi template
+    if (lang === 'pa' || lang === 'PA') {
+        return `AgriScan: ${disease} (${confidence}%). ਕਿਸਾਨ: ${farmerPhone}. ਸਥਾਨ: ${shortLoc}. ਕਿਰਪਾ ਕਰਕੇ ਕਾਲ ਕਰੋ।`;
+    }
+
+    // Hindi template
+    if (lang === 'hi' || lang === 'HI') {
+        return `AgriScan: ${disease} (${confidence}%). किसान: ${farmerPhone}. स्थान: ${shortLoc}. कॉल करें।`;
+    }
+
+    // Default English template
     return `AgriScan: ${disease} (${confidence}%). Farmer: ${farmerPhone}. Loc: ${shortLoc}. Call now.`;
 }
 

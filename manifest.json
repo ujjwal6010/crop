@@ -1,0 +1,17 @@
+{
+  "name": "CropHealth Offline Diagnostic System",
+  "short_name": "CropHealth",
+  "description": "Expert crop health diagnosis, anywhere, even offline.",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#f0f4f0",
+  "theme_color": "#2e7d32",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/2910/2910768.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

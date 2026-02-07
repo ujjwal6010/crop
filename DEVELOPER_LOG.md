@@ -5,8 +5,25 @@
 **Name:** CropHealth AI (Offline PWA)  
 **Goal:** Offline-first crop disease detection using TensorFlow.js for rural farmers  
 **Aesthetic:** 'Stillpoint Studio' / Japandi (Warm Beige, Deep Green, Serif Typography)  
-**Version:** v26  
+**Version:** v27  
 **Last Updated:** 2026-02-07
+
+---
+
+## TensorFlow.js Model Integration
+
+**Model Type:** YOLOv8 Classification (TF.js format)  
+**Input Shape:** 224×224×3  
+**Preprocessing:** Normalize pixels by /255.0  
+**Loading:** `tf.loadGraphModel('model/model.json')`
+
+### Class Labels (Index → Disease)
+| Index | Disease | Treatment |
+|-------|---------|-----------|
+| 0 | Bacterial Spot | Copper-based bactericide |
+| 1 | Early Blight | Mancozeb/Chlorothalonil fungicide |
+| 2 | Healthy | No treatment needed |
+| 3 | Late Blight | Metalaxyl/Ridomil fungicide |
 
 ---
 

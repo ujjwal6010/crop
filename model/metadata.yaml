@@ -1,0 +1,24 @@
+description: Ultralytics YOLOv8n-cls model trained on /content/datasets/my_plant_data
+author: Ultralytics
+date: '2026-02-07T12:41:13.860232'
+version: 8.4.12
+license: AGPL-3.0 License (https://ultralytics.com/license)
+docs: https://docs.ultralytics.com
+stride: 1
+task: classify
+batch: 1
+imgsz:
+- 224
+- 224
+names:
+  0: Tomato___Bacterial_spot
+  1: Tomato___Early_blight
+  2: Tomato___Late_blight
+  3: Tomato___healthy
+args:
+  batch: 1
+  half: false
+  int8: false
+  nms: false
+channels: 3
+end2end: false

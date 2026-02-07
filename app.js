@@ -1,5 +1,5 @@
 // =============================================
-// CropHealth AI - TensorFlow.js Integration
+// AgriScan - AI Tomato Doctor
 // YOLOv8 Classification Model for Tomato Disease
 // =============================================
 
@@ -16,10 +16,10 @@ let currentResult = null;
 let isModelLoading = false;
 
 // Confidence Threshold (adjust as needed)
-const CONFIDENCE_THRESHOLD = 0.90; // 90% - stricter threshold
+const CONFIDENCE_THRESHOLD = 0.80; // 80% minimum for valid diagnosis
 
-// Plant Color Detection Threshold (lenient)
-const PLANT_COLOR_THRESHOLD = 0.05; // 5% of pixels must be plant-like
+// Plant Color Detection Threshold
+const PLANT_COLOR_THRESHOLD = 0.10; // 10% of pixels must be plant-like
 
 // Class Labels (YOLOv8 output index → disease name)
 const CLASS_LABELS = [
@@ -49,6 +49,25 @@ const REMEDIES = {
     }
 };
 
+// =============================================
+// SMS Bridge & Market Linkage Data
+// =============================================
+
+// Recommended Medicines based on Diagnosis
+const MEDICINES = {
+    'Bacterial Spot': 'Copper Bactericide',
+    'Early Blight': 'Mancozeb Fungicide',
+    'Late Blight': 'Chlorothalonil',
+    'Healthy': 'Organic Fertilizer (Maintenance)'
+};
+
+// Mock Local Shops Database
+const MOCK_SHOPS = [
+    { name: "Ramesh Krishi Kendra", dist: "1.2 km", stock: true },
+    { name: "Global Agri Store", dist: "3.5 km", stock: false },
+    { name: "Village Co-op Society", dist: "0.8 km", stock: true }
+];
+
 // Translations
 const translations = {
     en: {
@@ -75,7 +94,7 @@ const translations = {
         'offline-active': 'Offline Active',
         'status-online': 'Online',
         'status-offline': 'Offline',
-        'footer': '© 2026 Offline Crop Health Diagnostic System',
+        'footer': '© 2026 AgriScan - AI Tomato Doctor',
         'btn-login': 'Login',
         'model-ready': 'AI Model Ready',
         'model-error': 'Model Error'
@@ -104,7 +123,7 @@ const translations = {
         'offline-active': 'ऑफलाइन सक्रिय',
         'status-online': 'ऑनलाइन',
         'status-offline': 'ऑफलाइन',
-        'footer': '© 2026 ऑफलाइन फसल स्वास्थ्य निदान प्रणाली',
+        'footer': '© 2026 AgriScan - AI टोमैटो डॉक्टर',
         'btn-login': 'लॉगिन',
         'model-ready': 'AI मॉडल तैयार',
         'model-error': 'मॉडल त्रुटि'
@@ -330,10 +349,11 @@ async function diagnoseCrop() {
             <div class="result-card-dynamic slide-up border-diseased" style="border-color: #c0392b;">
                 <div class="result-icon" style="font-size: 3rem;">⚠️</div>
                 <h2 class="result-title" style="color: #c0392b;">No Leaf Detected</h2>
-                <p style="color: #4A4540; margin: 1.5rem 0;">Please upload a close-up photo of a plant leaf.</p>
-                <p style="color: #888; font-size: 0.85rem;">The image does not contain enough green/yellow/brown plant colors.</p>
+                <p style="color: #4A4540; margin: 1.5rem 0;">Please upload a clear photo of a tomato leaf.</p>
+                <p style="color: #888; font-size: 0.85rem;">The image does not contain enough organic plant colors (green/yellow/brown).</p>
+                <p style="color: #888; font-size: 0.8rem;">Minimum required: ${PLANT_COLOR_THRESHOLD * 100}% plant-like pixels</p>
                 <button class="btn primary-btn" onclick="location.reload()" style="padding: 12px 30px; width: 100%; margin-top: 1.5rem;">
-                    ${translations[currentLang]['btn-new']}
+                    🔄 Try Again
                 </button>
             </div>
         `;
@@ -353,13 +373,14 @@ async function diagnoseCrop() {
     // Check confidence threshold
     if (result.rawConfidence < CONFIDENCE_THRESHOLD) {
         diagnosisTool.innerHTML = `
-            <div class="result-card-dynamic slide-up border-diseased" style="border-color: #c0392b;">
+            <div class="result-card-dynamic slide-up border-diseased" style="border-color: #e67e22;">
                 <div class="result-icon" style="font-size: 3rem;">⚠️</div>
-                <h2 class="result-title" style="color: #c0392b;">Unrecognized Image</h2>
-                <p style="color: #4A4540; margin: 1.5rem 0;">Please upload a clear photo of a tomato leaf.</p>
-                <p style="color: #888; font-size: 0.85rem;">Confidence: ${result.confidence}% (below ${CONFIDENCE_THRESHOLD * 100}% threshold)</p>
+                <h2 class="result-title" style="color: #e67e22;">Low Confidence</h2>
+                <p style="color: #4A4540; margin: 1.5rem 0;">Please ensure the leaf is well-lit and fills the frame.</p>
+                <p style="color: #888; font-size: 0.85rem;">Detected: ${result.classLabel[currentLang]} (${result.confidence}% confidence)</p>
+                <p style="color: #888; font-size: 0.8rem;">Minimum required: ${CONFIDENCE_THRESHOLD * 100}%</p>
                 <button class="btn primary-btn" onclick="location.reload()" style="padding: 12px 30px; width: 100%; margin-top: 1.5rem;">
-                    ${translations[currentLang]['btn-new']}
+                    🔄 Try Again
                 </button>
             </div>
         `;
@@ -371,6 +392,7 @@ async function diagnoseCrop() {
     const classId = result.classLabel.id;
     const isHealthy = classId === 'healthy';
     const remedyData = REMEDIES[classId][currentLang];
+    const diagnosisName = result.classLabel.en; // Use English for medicine lookup
 
     // Define Icon and Border Class
     const resultIcon = isHealthy ? '✅' : '⚠️';
@@ -380,7 +402,25 @@ async function diagnoseCrop() {
     const remedyBullets = remedyData.remedy.split('.').filter(s => s.trim().length > 0)
         .map(s => `<li>${s.trim()}</li>`).join('');
 
-    // Display Result Card
+    // Get recommended medicine
+    const medicine = MEDICINES[diagnosisName] || 'Consult local expert';
+
+    // Generate SMS text
+    const smsText = `AgriScan Alert: ${diagnosisName} detected (Conf: ${result.confidence}%). Rx: ${medicine}. Please assist farmer.`;
+    const smsHref = `sms:18001801551?body=${encodeURIComponent(smsText)}`; // Kisan Call Center Helpline
+
+    // Generate shop list HTML
+    const shopListHTML = MOCK_SHOPS.map(shop => {
+        const stockStatus = shop.stock
+            ? '<span style="color: #27ae60;">✅ In Stock</span>'
+            : '<span style="color: #c0392b;">❌ Out of Stock</span>';
+        return `<li style="padding: 10px 0; border-bottom: 1px solid #D1C7BD;">
+            <strong>${shop.name}</strong> (${shop.dist})<br>
+            ${stockStatus}
+        </li>`;
+    }).join('');
+
+    // Display Result Card with SMS Bridge & Market Linkage
     diagnosisTool.innerHTML = `
         <div class="result-card-dynamic slide-up ${borderClass}">
             <div class="result-icon">${resultIcon}</div>
@@ -398,7 +438,25 @@ async function diagnoseCrop() {
                     <li>${remedyData.advice}</li>
                 </ul>
             </div>
-            <button class="btn primary-btn" onclick="location.reload()" style="padding: 12px 30px; width: 100%;">
+
+            <!-- SMS Bridge Section -->
+            <div class="sms-bridge-section" style="margin-top: 2rem; padding: 1.5rem; background: #F0EBE5; border: 1px solid #D1C7BD;">
+                <h4 style="margin-bottom: 1rem; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px;">📱 SMS Bridge (Offline Support)</h4>
+                <p style="font-size: 0.85rem; color: #4A4540; margin-bottom: 1rem; padding: 10px; background: #fff; border: 1px solid #D1C7BD;">${smsText}</p>
+                <a href="${smsHref}" class="btn primary-btn" style="display: block; text-align: center; padding: 12px 20px; text-decoration: none;">
+                    📤 Send SMS to Expert
+                </a>
+            </div>
+
+            <!-- Market Linkage Section -->
+            <div class="market-linkage-section" style="margin-top: 1.5rem; padding: 1.5rem; background: #F9F7F5; border: 1px solid #D1C7BD;">
+                <h4 style="margin-bottom: 1rem; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px;">🏪 Nearby Shops - ${medicine}</h4>
+                <ul style="list-style: none; padding: 0; margin: 0;">
+                    ${shopListHTML}
+                </ul>
+            </div>
+
+            <button class="btn primary-btn" onclick="location.reload()" style="padding: 12px 30px; width: 100%; margin-top: 1.5rem;">
                 ${translations[currentLang]['btn-new']}
             </button>
         </div>

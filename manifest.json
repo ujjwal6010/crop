@@ -1,6 +1,6 @@
 {
-  "name": "CropHealth Offline Diagnostic System",
-  "short_name": "CropHealth",
+  "name": "AgriScan - AI Tomato Doctor",
+  "short_name": "AgriScan",
   "description": "Expert crop health diagnosis, anywhere, even offline.",
   "start_url": "./index.html",
   "display": "standalone",

@@ -104,7 +104,7 @@ function formatAlertMessage(disease, confidence, location, phone, lang) {
     let farmerPhone = phone || 'N/A';
 
     // Punjabi template
-    if (lang === 'pa' || lang === 'PA') {
+    if (lang === 'pu' || lang === 'PU') {
         return `AgriScan: ${disease} (${confidence}%). ਕਿਸਾਨ: ${farmerPhone}. ਸਥਾਨ: ${shortLoc}. ਕਿਰਪਾ ਕਰਕੇ ਕਾਲ ਕਰੋ।`;
     }
 

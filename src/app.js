@@ -1,11 +1,250 @@
 // =============================================
-// AgriScan - AI Tomato Doctor
-// YOLOv8 Classification Model for Tomato Disease
+// AgriScan — AI Crop Diagnostic Engine
+// src/app.js — Client Application Logic
+//
+// Refactored: July 2026
+// Architecture: Edge-AI PWA with IndexedDB Sync Queue
+// Model: YOLOv8n-cls (TF.js GraphModel, 224×224×3)
+// MSME Udyam: UDYAM-HR-06-0087998 | NIC: 62011
 // =============================================
 
 // =============================================
-// App Loading Screen - Hide after window load
+// §1. INDEXEDDB SYNC QUEUE MODULE
+// Offline-resilient SMS alert persistence layer.
+// When network is unavailable, payloads are written
+// to a local IndexedDB store and auto-flushed when
+// connectivity resumes via the 'online' event.
 // =============================================
+
+const SyncQueue = (() => {
+    const DB_NAME = 'AgriScanSyncDB';
+    const DB_VERSION = 1;
+    const STORE_NAME = 'sms_queue';
+    const BACKEND_ENDPOINT = 'https://agriscan-backend-6iar.onrender.com/send-alert';
+
+    let _db = null;
+
+    /**
+     * Opens (or creates) the IndexedDB database.
+     * @returns {Promise<IDBDatabase>}
+     */
+    function openDB() {
+        return new Promise((resolve, reject) => {
+            if (_db) { resolve(_db); return; }
+
+            const request = indexedDB.open(DB_NAME, DB_VERSION);
+
+            request.onupgradeneeded = (event) => {
+                const db = event.target.result;
+                if (!db.objectStoreNames.contains(STORE_NAME)) {
+                    const store = db.createObjectStore(STORE_NAME, {
+                        keyPath: 'id',
+                        autoIncrement: true
+                    });
+                    store.createIndex('timestamp', 'timestamp', { unique: false });
+                    store.createIndex('status', 'status', { unique: false });
+                    console.log('[SyncQueue] IndexedDB store created:', STORE_NAME);
+                }
+            };
+
+            request.onsuccess = (event) => {
+                _db = event.target.result;
+                console.log('[SyncQueue] IndexedDB opened successfully');
+                resolve(_db);
+            };
+
+            request.onerror = (event) => {
+                console.error('[SyncQueue] IndexedDB open failed:', event.target.error);
+                reject(event.target.error);
+            };
+        });
+    }
+
+    /**
+     * Enqueues an SMS alert payload into IndexedDB.
+     * @param {Object} payload - { disease, confidence, phone, lang, remedy }
+     * @returns {Promise<number>} The auto-generated record ID.
+     */
+    async function enqueue(payload) {
+        const db = await openDB();
+        return new Promise((resolve, reject) => {
+            const tx = db.transaction(STORE_NAME, 'readwrite');
+            const store = tx.objectStore(STORE_NAME);
+
+            const record = {
+                timestamp: new Date().toISOString(),
+                status: 'pending',
+                retries: 0,
+                payload: payload
+            };
+
+            const request = store.add(record);
+            request.onsuccess = () => {
+                console.log('[SyncQueue] Payload queued with ID:', request.result);
+                resolve(request.result);
+            };
+            request.onerror = () => {
+                console.error('[SyncQueue] Failed to enqueue:', request.error);
+                reject(request.error);
+            };
+        });
+    }
+
+    /**
+     * Retrieves all pending records from the sync store.
+     * @returns {Promise<Array>}
+     */
+    async function getPending() {
+        const db = await openDB();
+        return new Promise((resolve, reject) => {
+            const tx = db.transaction(STORE_NAME, 'readonly');
+            const store = tx.objectStore(STORE_NAME);
+            const index = store.index('status');
+            const request = index.getAll('pending');
+
+            request.onsuccess = () => resolve(request.result);
+            request.onerror = () => reject(request.error);
+        });
+    }
+
+    /**
+     * Marks a record as sent (removes from pending queue).
+     * @param {number} id - Record key.
+     */
+    async function markSent(id) {
+        const db = await openDB();
+        return new Promise((resolve, reject) => {
+            const tx = db.transaction(STORE_NAME, 'readwrite');
+            const store = tx.objectStore(STORE_NAME);
+            const getReq = store.get(id);
+
+            getReq.onsuccess = () => {
+                const record = getReq.result;
+                if (record) {
+                    record.status = 'sent';
+                    record.sentAt = new Date().toISOString();
+                    const putReq = store.put(record);
+                    putReq.onsuccess = () => resolve();
+                    putReq.onerror = () => reject(putReq.error);
+                } else {
+                    resolve(); // Already gone
+                }
+            };
+            getReq.onerror = () => reject(getReq.error);
+        });
+    }
+
+    /**
+     * Attempts to flush all pending records to the backend.
+     * Called automatically when the browser comes online.
+     * @returns {Promise<{sent: number, failed: number}>}
+     */
+    async function flush() {
+        const pending = await getPending();
+        if (pending.length === 0) {
+            console.log('[SyncQueue] No pending items to flush');
+            return { sent: 0, failed: 0 };
+        }
+
+        console.log(`[SyncQueue] Flushing ${pending.length} queued alert(s)...`);
+        let sent = 0;
+        let failed = 0;
+
+        for (const record of pending) {
+            try {
+                const response = await fetch(BACKEND_ENDPOINT, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(record.payload)
+                });
+
+                if (response.ok) {
+                    await markSent(record.id);
+                    sent++;
+                    console.log(`[SyncQueue] Sent queued alert ID ${record.id}`);
+                } else {
+                    failed++;
+                    console.warn(`[SyncQueue] Server rejected alert ID ${record.id}: ${response.status}`);
+                }
+            } catch (err) {
+                failed++;
+                console.warn(`[SyncQueue] Network error flushing ID ${record.id}:`, err.message);
+            }
+        }
+
+        console.log(`[SyncQueue] Flush complete: ${sent} sent, ${failed} failed`);
+        return { sent, failed };
+    }
+
+    /**
+     * Returns the count of pending (unsent) records.
+     * @returns {Promise<number>}
+     */
+    async function pendingCount() {
+        const pending = await getPending();
+        return pending.length;
+    }
+
+    // Initialize the database on module load
+    openDB().catch((err) => {
+        console.warn('[SyncQueue] Initial DB open deferred:', err.message);
+    });
+
+    return { enqueue, flush, pendingCount, getPending };
+})();
+
+// =============================================
+// §2. AUTO-FLUSH: Network Reconnection Listener
+// When the browser transitions from offline → online,
+// the sync queue is automatically flushed.
+// =============================================
+
+window.addEventListener('online', async () => {
+    console.log('[Network] Connectivity restored — flushing sync queue');
+    try {
+        const result = await SyncQueue.flush();
+        if (result.sent > 0) {
+            showSyncNotification(
+                `✅ ${result.sent} queued alert(s) sent successfully.`,
+                'success'
+            );
+        }
+    } catch (err) {
+        console.error('[Network] Flush error on reconnect:', err);
+    }
+});
+
+/**
+ * Displays a transient notification banner at the top of the viewport.
+ * Used to inform the user about sync queue activity.
+ */
+function showSyncNotification(message, type) {
+    const existing = document.getElementById('sync-notification');
+    if (existing) existing.remove();
+
+    const banner = document.createElement('div');
+    banner.id = 'sync-notification';
+    banner.style.cssText = `
+        position: fixed; top: 0; left: 0; right: 0; z-index: 10000;
+        padding: 14px 20px; text-align: center;
+        font-family: 'Inter', sans-serif; font-size: 0.85rem;
+        letter-spacing: 0.02em; transition: opacity 0.5s ease;
+        background: ${type === 'success' ? '#2d4a22' : type === 'warning' ? '#e67e22' : '#c0392b'};
+        color: #ffffff;
+    `;
+    banner.textContent = message;
+    document.body.prepend(banner);
+
+    setTimeout(() => {
+        banner.style.opacity = '0';
+        setTimeout(() => banner.remove(), 500);
+    }, 4000);
+}
+
+// =============================================
+// §3. APP LOADING SCREEN
+// =============================================
+
 window.addEventListener('load', () => {
     setTimeout(() => {
         const loader = document.getElementById('app-loader');
@@ -16,23 +255,29 @@ window.addEventListener('load', () => {
                 loader.style.display = 'none';
             }, 500);
         }
-    }, 1000); // 1 second delay for smooth feel
+    }, 1000);
 });
 
-// --- Elements & IDs ---
+// =============================================
+// §4. DOM ELEMENT REFERENCES
+// =============================================
+
 const imageUpload = document.getElementById('imageUpload');
 const previewContainer = document.getElementById('preview-container');
 const diagnosisTool = document.getElementById('diagnosis-tool');
 const homeSection = document.getElementById('home');
 
-// --- Model & State ---
+// =============================================
+// §5. MODEL & APPLICATION STATE
+// =============================================
+
 let model = null;
 let currentLang = 'en';
 let currentResult = null;
 let isModelLoading = false;
 
-// Confidence Threshold (adjust as needed)
-const CONFIDENCE_THRESHOLD = 0.80; // 80% minimum for valid diagnosis
+// Confidence Threshold (minimum for valid diagnosis)
+const CONFIDENCE_THRESHOLD = 0.80; // 80%
 
 // Plant Color Detection Threshold
 const PLANT_COLOR_THRESHOLD = 0.10; // 10% of pixels must be plant-like
@@ -70,7 +315,7 @@ const REMEDIES = {
 };
 
 // =============================================
-// SMS Bridge & Market Linkage Data
+// §6. SMS BRIDGE & MARKET LINKAGE DATA
 // =============================================
 
 // Recommended Medicines based on Diagnosis
@@ -81,16 +326,105 @@ const MEDICINES = {
     'Healthy': 'Organic Fertilizer (Maintenance)'
 };
 
-// Mock Local Shops Database
-const MOCK_SHOPS = [
-    { name: "Ramesh Krishi Kendra", dist: "1.2 km", stock: true },
-    { name: "Global Agri Store", dist: "3.5 km", stock: false },
-    { name: "Village Co-op Society", dist: "0.8 km", stock: true }
+// Agrochemical Shop Database (Haryana / Punjab / NCR region)
+// Each entry has GPS coordinates for distance-based sorting
+const AGRI_SHOPS_DB = [
+    // Hisar District
+    { name: "Hisar Krishi Seva Kendra", lat: 29.1492, lng: 75.7217, stock: true, area: "Hisar" },
+    { name: "Bharat Agro Chemicals", lat: 29.1530, lng: 75.7280, stock: true, area: "Hisar" },
+    { name: "Sharma Beej Bhandar", lat: 29.1450, lng: 75.7150, stock: false, area: "Hisar" },
+    { name: "Kisan Seva Kendra, Sector 14", lat: 29.1560, lng: 75.7230, stock: true, area: "Hisar" },
+    // Karnal District
+    { name: "Karnal Krishi Kendra", lat: 29.6857, lng: 76.9905, stock: true, area: "Karnal" },
+    { name: "Jai Kisan Agro Store", lat: 29.6900, lng: 76.9850, stock: true, area: "Karnal" },
+    { name: "Punjab Pesticides, Karnal", lat: 29.6830, lng: 76.9950, stock: false, area: "Karnal" },
+    // Ludhiana District
+    { name: "Ludhiana Agri Mart", lat: 30.9010, lng: 75.8573, stock: true, area: "Ludhiana" },
+    { name: "Punjab Kisan Store", lat: 30.9050, lng: 75.8610, stock: true, area: "Ludhiana" },
+    { name: "Gill Road Pesticides", lat: 30.8980, lng: 75.8500, stock: false, area: "Ludhiana" },
+    // Patiala District
+    { name: "Patiala Agro Centre", lat: 30.3398, lng: 76.3869, stock: true, area: "Patiala" },
+    { name: "Royal Kisan Bhandar", lat: 30.3350, lng: 76.3900, stock: true, area: "Patiala" },
+    // Ambala District
+    { name: "Ambala Krishi Dukan", lat: 30.3782, lng: 76.7767, stock: true, area: "Ambala" },
+    { name: "Green Fields Agro", lat: 30.3750, lng: 76.7800, stock: false, area: "Ambala" },
+    // Chandigarh / Mohali
+    { name: "CHD Agri Solutions", lat: 30.7333, lng: 76.7794, stock: true, area: "Chandigarh" },
+    { name: "Mohali Farm Store", lat: 30.7046, lng: 76.7179, stock: true, area: "Mohali" },
+    // Kurukshetra
+    { name: "Kurukshetra Beej Bhandar", lat: 29.9695, lng: 76.8783, stock: true, area: "Kurukshetra" },
+    // Sirsa
+    { name: "Sirsa Kisan Kendra", lat: 29.5340, lng: 75.0260, stock: true, area: "Sirsa" },
+    // Panipat
+    { name: "Panipat Agro Traders", lat: 29.3909, lng: 76.9635, stock: true, area: "Panipat" },
+    // Rohtak
+    { name: "Rohtak Krishi Bazar", lat: 28.8955, lng: 76.6066, stock: true, area: "Rohtak" },
 ];
 
+// Haversine formula — distance between two GPS coordinates in km
+function haversineDistance(lat1, lng1, lat2, lng2) {
+    const R = 6371; // Earth's radius in km
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLng = (lng2 - lng1) * Math.PI / 180;
+    const a = Math.sin(dLat / 2) ** 2 +
+              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+              Math.sin(dLng / 2) ** 2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+// User's last known position (updated by Geolocation API)
+let userLat = null;
+let userLng = null;
+
+// Request location on page load
+if ('geolocation' in navigator) {
+    navigator.geolocation.getCurrentPosition(
+        (pos) => {
+            userLat = pos.coords.latitude;
+            userLng = pos.coords.longitude;
+            console.log(`[Geo] Location acquired: ${userLat.toFixed(4)}, ${userLng.toFixed(4)}`);
+        },
+        (err) => {
+            console.warn('[Geo] Location denied or unavailable:', err.message);
+        },
+        { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 }
+    );
+}
+
+/**
+ * Returns the 3 nearest shops sorted by distance.
+ * If geolocation is unavailable, returns the first 3 shops with area label.
+ */
+function getNearbyShops() {
+    if (userLat !== null && userLng !== null) {
+        // Calculate distances and sort
+        const withDistance = AGRI_SHOPS_DB.map(shop => ({
+            ...shop,
+            dist: haversineDistance(userLat, userLng, shop.lat, shop.lng)
+        }));
+        withDistance.sort((a, b) => a.dist - b.dist);
+        return withDistance.slice(0, 3).map(shop => ({
+            name: shop.name,
+            dist: shop.dist < 1
+                ? `${(shop.dist * 1000).toFixed(0)} m`
+                : `${shop.dist.toFixed(1)} km`,
+            stock: shop.stock,
+            area: shop.area
+        }));
+    }
+    // Fallback: return first 3 with area info
+    return AGRI_SHOPS_DB.slice(0, 3).map(shop => ({
+        name: shop.name,
+        dist: shop.area,
+        stock: shop.stock,
+        area: shop.area
+    }));
+}
+
 // =============================================
-// SMS Gateway Function (Twilio Backend)
-// Dual-State with Hindi/English translations
+// §7. SMS GATEWAY FUNCTION (Twilio Backend)
+// Dual-State: Online → POST to Express backend.
+//             Offline → Queue in IndexedDB, alert user.
 // =============================================
 
 async function triggerTwistOption(disease, confidence, fallbackSmsHref) {
@@ -116,6 +450,11 @@ async function triggerTwistOption(disease, confidence, fallbackSmsHref) {
             hi: '✅ अलर्ट KVK विशेषज्ञ को भेजा गया',
             pu: '✅ ਮਾਹਰ ਨੂੰ ਅਲਰਟ ਭੇਜਿਆ ਗਿਆ'
         },
+        queued: {
+            en: '📥 Queued — Will send when online',
+            hi: '📥 कतार में — ऑनलाइन होने पर भेजा जाएगा',
+            pu: '📥 ਕਤਾਰ ਵਿੱਚ — ਆਨਲਾਈਨ ਹੋਣ ਤੇ ਭੇਜਿਆ ਜਾਵੇਗਾ'
+        },
         fallback: {
             en: '⚠️ Opened Manual SMS',
             hi: '⚠️ मैनुअल एसएमएस खुला',
@@ -135,17 +474,9 @@ async function triggerTwistOption(disease, confidence, fallbackSmsHref) {
         if (phoneInput) {
             phoneInput.style.border = '1px solid #d32f2f';
             phoneInput.classList.add('shake');
-
-            // Remove shake class after animation
-            setTimeout(() => {
-                phoneInput.classList.remove('shake');
-            }, 500);
-
-            // Focus the input
+            setTimeout(() => phoneInput.classList.remove('shake'), 500);
             phoneInput.focus();
         }
-
-        // Show inline error message
         if (phoneError) {
             phoneError.textContent = currentLang === 'pu'
                 ? 'ਕਿਰਪਾ ਕਰਕੇ ਇੱਕ ਵੈਧ 10-ਅੰਕਾਂ ਵਾਲਾ ਨੰਬਰ ਦਰਜ ਕਰੋ'
@@ -158,12 +489,16 @@ async function triggerTwistOption(disease, confidence, fallbackSmsHref) {
     }
 
     // Reset input styling on valid entry
-    if (phoneInput) {
-        phoneInput.style.border = '1px solid #ddd';
-    }
-    if (phoneError) {
-        phoneError.style.display = 'none';
-    }
+    if (phoneInput) phoneInput.style.border = '1px solid #ddd';
+    if (phoneError) phoneError.style.display = 'none';
+
+    // Build the SMS payload
+    const smsPayload = {
+        disease: disease,
+        confidence: confidence,
+        phone: farmerPhone,
+        lang: currentLang
+    };
 
     // Step 2: Disable button and show Loading State
     btn.disabled = true;
@@ -171,62 +506,98 @@ async function triggerTwistOption(disease, confidence, fallbackSmsHref) {
     btn.style.background = '#e0e0e0';
     btn.style.color = '#333';
 
+    // ── OFFLINE PATH: Queue in IndexedDB ──
+    if (!navigator.onLine) {
+        try {
+            await SyncQueue.enqueue(smsPayload);
+            const queuedText = stateText.queued[currentLang] || stateText.queued.en;
+            btn.innerHTML = `<span>${queuedText}</span>`;
+            btn.style.background = '#e67e22';
+            btn.style.color = '#ffffff';
+
+            showSyncNotification(
+                currentLang === 'hi'
+                    ? '📥 आप ऑफलाइन हैं। अलर्ट कतार में सहेजा गया — ऑनलाइन होने पर स्वतः भेजा जाएगा।'
+                    : currentLang === 'pu'
+                        ? '📥 ਤੁਸੀਂ ਆਫਲਾਈਨ ਹੋ। ਅਲਰਟ ਕਤਾਰ ਵਿੱਚ ਸੇਵ ਹੋ ਗਿਆ — ਆਨਲਾਈਨ ਹੋਣ ਤੇ ਆਪਣੇ ਆਪ ਭੇਜਿਆ ਜਾਵੇਗਾ।'
+                        : '📥 You are offline. Alert saved to queue — will auto-send when connectivity resumes.',
+                'warning'
+            );
+        } catch (err) {
+            console.error('[SMS] Failed to queue offline:', err);
+            btnText.textContent = stateText.fallback[currentLang] || stateText.fallback.en;
+            btn.style.background = '#c0392b';
+            btn.style.color = '#ffffff';
+        }
+        return;
+    }
+
+    // ── ONLINE PATH: POST directly to Express backend ──
     try {
-        // Step 3: POST request to backend (with phone)
         const response = await fetch('https://agriscan-backend-6iar.onrender.com/send-alert', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                disease: disease,
-                confidence: confidence,
-                phone: farmerPhone.trim(),
-                lang: currentLang
-            })
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(smsPayload)
         });
 
-        // Step 3: Success State (status 200) - PERMANENT
         if (response.ok) {
-            // Feather-style SVG checkmark (white stroke)
             const checkSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 6px;"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
-
             const successText = currentLang === 'hi'
                 ? 'अलर्ट KVK विशेषज्ञ को भेजा गया'
-                : 'ALERT SENT TO KVK EXPERT';
-
+                : currentLang === 'pu'
+                    ? 'ਮਾਹਰ ਨੂੰ ਅਲਰਟ ਭੇਜਿਆ ਗਿਆ'
+                    : 'ALERT SENT TO KVK EXPERT';
             btn.innerHTML = `${checkSvg}<span>${successText}</span>`;
-            btn.style.background = '#2d4a22'; // AgriScan Green
+            btn.style.background = '#2d4a22';
             btn.style.color = '#ffffff';
-            // Button stays disabled permanently - no reset
+            // Button stays disabled permanently
         } else {
             throw new Error('Server returned non-200 status');
         }
 
     } catch (error) {
-        // Step 4: Fallback - trigger manual SMS
-        console.warn('SMS Gateway failed, using fallback:', error.message);
+        // Network request failed — queue in IndexedDB as fallback
+        console.warn('[SMS] Gateway POST failed, queuing to IndexedDB:', error.message);
 
-        btnText.textContent = stateText.fallback[currentLang] || stateText.fallback.en;
-        btn.style.background = '#e67e22';
-        btn.style.color = '#ffffff';
+        try {
+            await SyncQueue.enqueue(smsPayload);
+            const queuedText = stateText.queued[currentLang] || stateText.queued.en;
+            btn.innerHTML = `<span>${queuedText}</span>`;
+            btn.style.background = '#e67e22';
+            btn.style.color = '#ffffff';
 
-        // Open manual SMS link
-        setTimeout(() => {
-            window.location.href = fallbackSmsHref;
+            showSyncNotification(
+                currentLang === 'hi'
+                    ? '⚠️ सर्वर अनुपलब्ध। अलर्ट कतार में सहेजा गया।'
+                    : currentLang === 'pu'
+                        ? '⚠️ ਸਰਵਰ ਉਪਲਬਧ ਨਹੀਂ। ਅਲਰਟ ਕਤਾਰ ਵਿੱਚ ਸੇਵ ਹੋ ਗਿਆ।'
+                        : '⚠️ Server unavailable. Alert queued locally — will retry automatically.',
+                'warning'
+            );
+        } catch (queueErr) {
+            console.error('[SMS] Both network and queue failed:', queueErr);
+            btnText.textContent = stateText.fallback[currentLang] || stateText.fallback.en;
+            btn.style.background = '#e67e22';
+            btn.style.color = '#ffffff';
 
-            // Reset button after 3-4 seconds
             setTimeout(() => {
-                btn.disabled = false;
-                btnText.textContent = originalText;
-                btn.style.background = originalBg || '';
-                btn.style.color = originalColor || '';
-            }, 3500);
-        }, 500);
+                window.location.href = fallbackSmsHref;
+                setTimeout(() => {
+                    btn.disabled = false;
+                    btnText.textContent = originalText;
+                    btn.style.background = originalBg || '';
+                    btn.style.color = originalColor || '';
+                }, 3500);
+            }, 500);
+        }
     }
 }
 
-// Translations
+// =============================================
+// §8. LOCALIZATION ENGINE
+// Tri-lingual string matrix: English, Hindi, Punjabi
+// =============================================
+
 const translations = {
     en: {
         'nav-home': 'Home',
@@ -257,7 +628,7 @@ const translations = {
         'offline-active': 'Offline Active',
         'status-online': 'Online',
         'status-offline': 'Offline',
-        'footer': '© 2026 AgriScan - AI Tomato Doctor',
+        'footer': '© 2026 AgriScan — MSME Udyam UDYAM-HR-06-0087998',
         'btn-login': 'Login',
         'model-ready': 'AI Model Ready',
         'model-error': 'Model Error'
@@ -291,7 +662,7 @@ const translations = {
         'offline-active': 'ऑफलाइन सक्रिय',
         'status-online': 'ऑनलाइन',
         'status-offline': 'ऑफलाइन',
-        'footer': '© 2026 AgriScan - AI टोमैटो डॉक्टर',
+        'footer': '© 2026 AgriScan — MSME उद्यम UDYAM-HR-06-0087998',
         'btn-login': 'लॉगिन',
         'model-ready': 'AI मॉडल तैयार',
         'model-error': 'मॉडल त्रुटि'
@@ -325,7 +696,7 @@ const translations = {
         'offline-active': 'ਆਫਲਾਈਨ ਐਕਟਿਵ',
         'status-online': 'ਆਨਲਾਈਨ',
         'status-offline': 'ਆਫਲਾਈਨ',
-        'footer': '© 2026 ਐਗਰੀਸਕੇਨ - AI ਟਮਾਟਰ ਡਾਕਟਰ',
+        'footer': '© 2026 ਐਗਰੀਸਕੇਨ — MSME ਉਦਯਮ UDYAM-HR-06-0087998',
         'btn-login': 'ਲੌਗਇਨ',
         'model-ready': 'AI ਮਾਡਲ ਤਿਆਰ',
         'model-error': 'ਮਾਡਲ ਗਲਤੀ'
@@ -333,7 +704,8 @@ const translations = {
 };
 
 // =============================================
-// TensorFlow.js Model Loading
+// §9. TENSORFLOW.JS MODEL LOADING
+// Loads from local /public/models/ (offline-safe)
 // =============================================
 
 async function loadModel() {
@@ -341,17 +713,17 @@ async function loadModel() {
     isModelLoading = true;
 
     try {
-        console.log('Loading TensorFlow.js model...');
-        model = await tf.loadGraphModel('model/model.json');
-        console.log('Model loaded successfully!');
+        console.log('[Model] Loading TensorFlow.js GraphModel from local store...');
+        model = await tf.loadGraphModel('../models/model.json');
+        console.log('[Model] Loaded successfully');
 
-        // Warm up the model with a dummy prediction
+        // Warm up with a dummy prediction to pre-allocate WebGL textures
         const warmupTensor = tf.zeros([1, 224, 224, 3]);
         await model.predict(warmupTensor);
         warmupTensor.dispose();
-        console.log('Model warmed up and ready.');
+        console.log('[Model] Warm-up complete — inference ready');
     } catch (error) {
-        console.error('Error loading model:', error);
+        console.error('[Model] Load error:', error);
         model = null;
     }
     isModelLoading = false;
@@ -361,69 +733,51 @@ async function loadModel() {
 loadModel();
 
 // =============================================
-// Image Preprocessing (YOLOv8 Requirements)
+// §10. IMAGE PREPROCESSING (224×224 Normalization)
 // =============================================
 
 function preprocessImage(imgElement) {
     return tf.tidy(() => {
-        // Convert image to tensor
         let tensor = tf.browser.fromPixels(imgElement);
-
-        // Resize to 224x224
         tensor = tf.image.resizeBilinear(tensor, [224, 224]);
-
-        // Normalize pixel values to 0-1 range
         tensor = tensor.div(255.0);
-
-        // Add batch dimension [1, 224, 224, 3]
         tensor = tensor.expandDims(0);
-
         return tensor;
     });
 }
 
 // =============================================
-// Color Heuristic Pre-Filter (Green Filter)
+// §11. COLOR HEURISTIC PRE-FILTER (Plant Detection)
 // =============================================
 
 function isPlantLike(imgElement) {
-    // Create hidden canvas for pixel analysis
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
 
-    // Use smaller size for faster processing
     const analyzeSize = 100;
     canvas.width = analyzeSize;
     canvas.height = analyzeSize;
-
-    // Draw image to canvas
     ctx.drawImage(imgElement, 0, 0, analyzeSize, analyzeSize);
 
-    // Get pixel data
     const imageData = ctx.getImageData(0, 0, analyzeSize, analyzeSize);
     const pixels = imageData.data;
 
     let plantColorCount = 0;
     const totalPixels = analyzeSize * analyzeSize;
 
-    // Analyze each pixel
     for (let i = 0; i < pixels.length; i += 4) {
         const r = pixels[i];
         const g = pixels[i + 1];
         const b = pixels[i + 2];
 
-        // Convert RGB to HSL
         const hsl = rgbToHsl(r, g, b);
         const hue = hsl.h;
         const saturation = hsl.s;
         const lightness = hsl.l;
 
-        // Check for plant-like colors (lenient):
-        // Green: hue 40-180, low saturation ok for diseased leaves
-        // Yellow/Brown/Tan: hue 20-180, wide range for diseased/dried leaves
         const isGreen = (hue >= 40 && hue <= 180) && (saturation > 0.08) && (lightness > 0.05 && lightness < 0.95);
         const isYellowBrown = (hue >= 15 && hue <= 60) && (lightness > 0.05 && lightness < 0.90);
-        const isDarkGreen = (hue >= 60 && hue <= 180) && (lightness > 0.02 && lightness < 0.4); // Dark backgrounds with green tint
+        const isDarkGreen = (hue >= 60 && hue <= 180) && (lightness > 0.02 && lightness < 0.4);
 
         if (isGreen || isYellowBrown || isDarkGreen) {
             plantColorCount++;
@@ -431,47 +785,40 @@ function isPlantLike(imgElement) {
     }
 
     const plantRatio = plantColorCount / totalPixels;
-    console.log(`Plant color ratio: ${(plantRatio * 100).toFixed(1)}%`);
-
+    console.log(`[PreFilter] Plant color ratio: ${(plantRatio * 100).toFixed(1)}%`);
     return plantRatio >= PLANT_COLOR_THRESHOLD;
 }
 
-// Helper: RGB to HSL conversion
 function rgbToHsl(r, g, b) {
     r /= 255; g /= 255; b /= 255;
-
     const max = Math.max(r, g, b);
     const min = Math.min(r, g, b);
     let h, s, l = (max + min) / 2;
 
     if (max === min) {
-        h = s = 0; // achromatic
+        h = s = 0;
     } else {
         const d = max - min;
         s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
-
         switch (max) {
             case r: h = ((g - b) / d + (g < b ? 6 : 0)) / 6; break;
             case g: h = ((b - r) / d + 2) / 6; break;
             case b: h = ((r - g) / d + 4) / 6; break;
         }
     }
-
     return { h: h * 360, s: s, l: l };
 }
 
 // =============================================
-// Prediction Logic
+// §12. PREDICTION LOGIC
 // =============================================
 
 async function predict(imgElement) {
     if (!model) {
-        console.error('Model not loaded');
+        console.error('[Predict] Model not loaded');
         loadModel();
         return null;
     }
-
-
 
     const inputTensor = preprocessImage(imgElement);
 
@@ -479,7 +826,6 @@ async function predict(imgElement) {
         const predictions = await model.predict(inputTensor);
         const probabilities = await predictions.data();
 
-        // Find the class with highest probability
         let maxProb = 0;
         let maxIndex = 0;
         for (let i = 0; i < probabilities.length; i++) {
@@ -489,7 +835,6 @@ async function predict(imgElement) {
             }
         }
 
-        // Clean up tensors
         inputTensor.dispose();
         predictions.dispose();
 
@@ -497,39 +842,35 @@ async function predict(imgElement) {
             classIndex: maxIndex,
             classLabel: CLASS_LABELS[maxIndex],
             confidence: (maxProb * 100).toFixed(1),
-            rawConfidence: maxProb  // Raw value for threshold check
+            rawConfidence: maxProb
         };
     } catch (error) {
-        console.error('Prediction error:', error);
+        console.error('[Predict] Error:', error);
         inputTensor.dispose();
         return null;
     }
 }
 
 // =============================================
-// UI Logic
+// §13. UI LOGIC — Image Upload & Diagnosis
 // =============================================
 
-// Handle File Selection
 imageUpload.addEventListener('change', (e) => {
     const file = e.target.files[0];
     if (file) {
         const reader = new FileReader();
         reader.onload = (event) => {
-            console.log('Image loaded successfully');
-
+            console.log('[UI] Image loaded successfully');
             previewContainer.innerHTML = `
                 <img src="${event.target.result}" id="preview-img" class="preview-image">
                 <button id="analyze-btn" class="btn primary-btn" style="padding:15px 30px; display:block; margin: 10px auto; width: 100%;">${translations[currentLang]['btn-check']}</button>
             `;
-
             document.getElementById('analyze-btn').addEventListener('click', diagnoseCrop);
         };
         reader.readAsDataURL(file);
     }
 });
 
-// Main Diagnosis Function
 async function diagnoseCrop() {
     const btn = document.getElementById('analyze-btn');
     const previewImg = document.getElementById('preview-img');
@@ -538,7 +879,6 @@ async function diagnoseCrop() {
     btn.textContent = translations[currentLang]['analyzing'];
     btn.disabled = true;
 
-    // Wait for model if not loaded
     if (!model) {
         btn.textContent = translations[currentLang]['loading-model'];
         await loadModel();
@@ -548,7 +888,6 @@ async function diagnoseCrop() {
         }
     }
 
-    // *** Color Heuristic Pre-Filter ***
     const alertSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`;
     const refreshSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;vertical-align:middle;margin-right:6px;"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>`;
 
@@ -571,7 +910,6 @@ async function diagnoseCrop() {
         return;
     }
 
-    // Run prediction
     const result = await predict(previewImg);
 
     if (!result) {
@@ -580,21 +918,18 @@ async function diagnoseCrop() {
         return;
     }
 
-    // Check confidence threshold
     if (result.rawConfidence < CONFIDENCE_THRESHOLD) {
-        const alertSvgConf = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`;
-        const refreshSvgConf = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;vertical-align:middle;margin-right:6px;"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>`;
         diagnosisTool.innerHTML = `
             <div class="result-card-dynamic slide-up border-diseased" style="border-color: #e67e22;">
                 <div class="result-icon-container diseased" style="background: rgba(230,126,34,0.1); color: #e67e22;">
-                    ${alertSvgConf}
+                    ${alertSvg}
                 </div>
                 <h2 class="result-title" style="color: #e67e22;">Low Confidence</h2>
                 <p style="color: #4A4540; margin: 1.5rem 0;">Please ensure the leaf is well-lit and fills the frame.</p>
                 <p style="color: #888; font-size: 0.85rem;">Detected: ${result.classLabel[currentLang]} (${result.confidence}% confidence)</p>
                 <p style="color: #888; font-size: 0.8rem;">Minimum required: ${CONFIDENCE_THRESHOLD * 100}%</p>
                 <button class="btn primary-btn" onclick="location.reload()" style="padding: 12px 30px; width: 100%; margin-top: 1.5rem; display: flex; align-items: center; justify-content: center;">
-                    ${refreshSvgConf} Try Again
+                    ${refreshSvg} Try Again
                 </button>
             </div>
         `;
@@ -606,9 +941,8 @@ async function diagnoseCrop() {
     const classId = result.classLabel.id;
     const isHealthy = classId === 'healthy';
     const remedyData = REMEDIES[classId][currentLang];
-    const diagnosisName = result.classLabel.en; // Use English for medicine lookup
+    const diagnosisName = result.classLabel.en;
 
-    // Define SVG Icons (Lucide-style)
     const checkIcon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 6L9 17l-5-5"/></svg>`;
     const alertIcon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`;
     const broadcastIcon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9"/><path d="M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.5"/><circle cx="12" cy="12" r="2"/><path d="M16.2 7.8c2.3 2.3 2.3 6.1 0 8.5"/><path d="M19.1 4.9C23 8.8 23 15.1 19.1 19"/></svg>`;
@@ -619,52 +953,43 @@ async function diagnoseCrop() {
     const resultSvg = isHealthy ? checkIcon : alertIcon;
     const borderClass = isHealthy ? 'border-healthy' : 'border-diseased';
 
-    // Prepare Remedies as Bullets
     const remedyBullets = remedyData.remedy.split('.').filter(s => s.trim().length > 0)
         .map(s => `<li>${s.trim()}</li>`).join('');
 
-    // Get recommended medicine
     const medicine = MEDICINES[diagnosisName] || 'Consult local expert';
 
-    // i18n strings for SMS Bridge & Market Linkage
     const i18nStrings = {
         en: {
-            alertPrefix: 'AgriScan Alert',
-            detected: 'detected',
-            assistFarmer: 'Please assist farmer',
-            inStock: 'In Stock',
-            outOfStock: 'Out of Stock',
-            smsBridge: 'SMS Bridge (Offline Support)',
-            sendSms: 'Send SMS to Expert',
-            nearbyShops: 'Nearby Shops'
+            alertPrefix: 'AgriScan Alert', detected: 'detected', assistFarmer: 'Please assist farmer',
+            inStock: 'In Stock', outOfStock: 'Out of Stock', smsBridge: 'SMS Bridge (Offline Support)',
+            sendSms: 'Send SMS to Expert', nearbyShops: 'Nearby Shops'
         },
         hi: {
-            alertPrefix: 'AgriScan चेतावनी',
-            detected: 'पाया गया',
-            assistFarmer: 'कृपया किसान की सहायता करें',
-            inStock: 'स्टॉक में है',
-            outOfStock: 'स्टॉक में नहीं है',
-            smsBridge: 'SMS ब्रिज (ऑफलाइन सहायता)',
-            sendSms: 'विशेषज्ञ को SMS भेजें',
-            nearbyShops: 'आस-पास की दुकानें'
+            alertPrefix: 'AgriScan चेतावनी', detected: 'पाया गया', assistFarmer: 'कृपया किसान की सहायता करें',
+            inStock: 'स्टॉक में है', outOfStock: 'स्टॉक में नहीं है', smsBridge: 'SMS ब्रिज (ऑफलाइन सहायता)',
+            sendSms: 'विशेषज्ञ को SMS भेजें', nearbyShops: 'आस-पास की दुकानें'
+        },
+        pu: {
+            alertPrefix: 'AgriScan ਚੇਤਾਵਨੀ', detected: 'ਪਾਇਆ ਗਿਆ', assistFarmer: 'ਕਿਰਪਾ ਕਰਕੇ ਕਿਸਾਨ ਦੀ ਮਦਦ ਕਰੋ',
+            inStock: 'ਸਟਾਕ ਵਿੱਚ', outOfStock: 'ਸਟਾਕ ਵਿੱਚ ਨਹੀਂ', smsBridge: 'SMS ਬ੍ਰਿਜ (ਆਫਲਾਈਨ ਸਹਾਇਤਾ)',
+            sendSms: 'ਮਾਹਰ ਨੂੰ SMS ਭੇਜੋ', nearbyShops: 'ਨੇੜਲੀਆਂ ਦੁਕਾਨਾਂ'
         }
     };
     const t = i18nStrings[currentLang] || i18nStrings.en;
 
-    // Generate SMS text (localized)
     const diagnosisDisplay = result.classLabel[currentLang];
     const smsText = `${t.alertPrefix}: ${diagnosisDisplay} ${t.detected} (Conf: ${result.confidence}%). Rx: ${medicine}. ${t.assistFarmer}.`;
-    const smsHref = `sms:18001801551?body=${encodeURIComponent(smsText)}`; // Kisan Call Center Helpline
+    const smsHref = `sms:18001801551?body=${encodeURIComponent(smsText)}`;
 
-    // Generate shop list HTML with minimalist design (localized)
-    const shopListHTML = MOCK_SHOPS.map(shop => {
+    const nearbyShops = getNearbyShops();
+    const shopListHTML = nearbyShops.map(shop => {
         const stockDotClass = shop.stock ? 'in-stock' : 'out-of-stock';
         const stockText = shop.stock ? t.inStock : t.outOfStock;
         const stockColor = shop.stock ? '#4CAF50' : '#e57373';
         return `<div class="shop-item">
             <div class="shop-info">
                 <div class="shop-name">${shop.name}</div>
-                <div class="shop-distance">${shop.dist}</div>
+                <div class="shop-distance">📍 ${shop.dist}${shop.area ? ' · ' + shop.area : ''}</div>
             </div>
             <div class="stock-status" style="color: ${stockColor};">
                 <span class="status-dot ${stockDotClass}"></span>
@@ -673,7 +998,6 @@ async function diagnoseCrop() {
         </div>`;
     }).join('');
 
-    // Display Result Card with Minimalist Icons
     diagnosisTool.innerHTML = `
         <div class="result-card-dynamic slide-up ${borderClass}">
             <div class="result-icon-container ${resultIconClass}">
@@ -733,7 +1057,7 @@ async function diagnoseCrop() {
 }
 
 // =============================================
-// Language & UI Updates
+// §14. LANGUAGE & UI UPDATES
 // =============================================
 
 document.getElementById('lang-select').addEventListener('change', (e) => {
@@ -766,7 +1090,7 @@ function updateLanguageUI() {
 }
 
 // =============================================
-// Scroll Spy Logic
+// §15. SCROLL SPY LOGIC
 // =============================================
 
 window.addEventListener('scroll', () => {
@@ -790,7 +1114,7 @@ window.addEventListener('scroll', () => {
 });
 
 // =============================================
-// Offline Status
+// §16. OFFLINE STATUS INDICATOR
 // =============================================
 
 function updateOnlineStatus() {
@@ -808,17 +1132,23 @@ window.addEventListener('online', updateOnlineStatus);
 window.addEventListener('offline', updateOnlineStatus);
 
 // =============================================
-// Service Worker Registration
+// §17. SERVICE WORKER REGISTRATION
 // =============================================
 
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./service-worker.js').catch(console.error);
+        navigator.serviceWorker.register('/service-worker.js')
+            .then((reg) => {
+                console.log('[SW] Registered:', reg.scope);
+            })
+            .catch((err) => {
+                console.error('[SW] Registration failed:', err);
+            });
     });
 }
 
 // =============================================
-// Reveal on Scroll (IntersectionObserver)
+// §18. REVEAL ON SCROLL (IntersectionObserver)
 // =============================================
 
 const revealObserver = new IntersectionObserver((entries) => {
@@ -834,7 +1164,7 @@ document.querySelectorAll('.reveal').forEach(el => {
 });
 
 // =============================================
-// Hamburger Menu Toggle (Mobile)
+// §19. HAMBURGER MENU TOGGLE (Mobile)
 // =============================================
 
 const hamburgerBtn = document.getElementById('hamburger-btn');
@@ -846,7 +1176,6 @@ if (hamburgerBtn && navLinks) {
         navLinks.classList.toggle('active');
     });
 
-    // Close menu when a nav link is clicked
     navLinks.querySelectorAll('a').forEach(link => {
         link.addEventListener('click', () => {
             hamburgerBtn.classList.remove('active');

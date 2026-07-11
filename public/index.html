@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AgriScan — AI Crop Diagnostic Engine</title>
+    <link rel="icon" type="image/png" href="assets/icons/fav.png">
+    <meta name="description"
+        content="AgriScan: Edge-AI powered offline crop disease diagnosis for precision agriculture. MSME Udyam UDYAM-HR-06-0087998.">
+    <meta name="theme-color" content="#264639">
+    <link rel="manifest" href="manifest.json">
+
+    <!-- Local Fonts (offline-safe, replaces Google Fonts CDN) -->
+    <link rel="stylesheet" href="assets/fonts/fonts.css">
+
+    <!-- Application Stylesheet -->
+    <link rel="stylesheet" href="assets/style.css">
+
+    <!-- TensorFlow.js (local vendor copy, offline-safe) -->
+    <script src="vendor/tf.min.js"></script>
+</head>
+
+<body>
+    <!-- App Loading Screen -->
+    <div id="app-loader"
+        style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #ffffff; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+        <div class="loader-spinner"></div>
+        <p
+            style="margin-top: 20px; font-family: 'Inter', sans-serif; font-size: 14px; color: #4A4540; letter-spacing: 1px;">
+            Initializing AgriScan AI... Please wait.</p>
+    </div>
+
+    <!-- Offline Badge -->
+    <div id="offline-badge" class="offline-badge">
+        <span data-i18n="offline-active">Offline Active</span>
+    </div>
+
+    <!-- Navbar -->
+    <nav class="navbar">
+        <div class="nav-content">
+            <a href="/" id="brand-logo" class="brand">AgriScan</a>
+
+            <!-- Mobile Menu Toggle -->
+            <button class="hamburger-btn" id="hamburger-btn" aria-label="Toggle menu">
+                <span class="hamburger-line"></span>
+                <span class="hamburger-line"></span>
+                <span class="hamburger-line"></span>
+            </button>
+
+            <!-- Navigation Links (hidden on mobile by default) -->
+            <ul class="nav-links" id="nav-links">
+                <li><a href="#home" id="nav-home" data-i18n="nav-home">Home</a></li>
+                <li><a href="#how-it-works" id="nav-about" data-i18n="nav-about">About</a></li>
+                <li><a href="#diagnosis-tool" id="nav-contact" data-i18n="nav-contact">Diagnose</a></li>
+            </ul>
+
+            <!-- Actions (Login + Language) -->
+            <div class="nav-actions">
+                <select id="lang-select" class="lang-dropdown">
+                    <option value="en">EN</option>
+                    <option value="hi">HI</option>
+                    <option value="pu">PU</option>
+                </select>
+                <!-- <button class="btn ghost-btn" data-i18n="btn-login">Login</button> -->
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Header -->
+    <header class="hero-header" id="home">
+        <div class="hero-content">
+            <span class="eyebrow reveal">AI-Powered Diagnostics</span>
+            <h1 id="hero-title" class="reveal" data-i18n="hero-tagline">Precision Diagnosis for Your <em>Harvest</em>.
+            </h1>
+            <p id="hero-subtitle" class="reveal" data-i18n="hero-subline">Instant, offline crop analysis powered by
+                agricultural AI. Professional-grade insights, anywhere.</p>
+            <div class="hero-btns reveal">
+                <a href="#diagnosis-tool" id="hero-cta" class="btn primary-btn" data-i18n="btn-start">Begin Analysis</a>
+                <a href="#how-it-works" class="btn ghost-btn" data-i18n="btn-learn">Learn More</a>
+            </div>
+        </div>
+    </header>
+
+    <!-- How it Works Section (2x2 Grid - Minimal) -->
+    <section class="how-it-works-section" id="how-it-works">
+        <div class="section-container">
+            <!-- Header -->
+            <div class="how-header reveal">
+                <span class="eyebrow-small">Our Process</span>
+                <h2 id="how-title" data-i18n="how-it-works-title">How it Works</h2>
+            </div>
+
+            <!-- 2x2 Grid -->
+            <div class="how-grid-2x2 reveal">
+                <div class="grid-item">
+                    <div class="item-header">
+                        <span class="min-icon">⌖</span>
+                        <h3 data-i18n="step1-title">Capture</h3>
+                    </div>
+                    <p data-i18n="step1-desc">Photograph the affected crop leaf in natural lighting for optimal
+                        analysis.</p>
+                </div>
+                <div class="grid-item">
+                    <div class="item-header">
+                        <span class="min-icon">✦</span>
+                        <h3 data-i18n="step2-title">Diagnosis</h3>
+                    </div>
+                    <p data-i18n="step2-desc">Instant offline analysis powered by advanced AI recognition models.</p>
+                </div>
+                <div class="grid-item">
+                    <div class="item-header">
+                        <span class="min-icon">→</span>
+                        <h3 data-i18n="step3-title">Remedy</h3>
+                    </div>
+                    <p data-i18n="step3-desc">Receive expert treatment plans tailored to your specific crop condition.
+                    </p>
+                </div>
+                <div class="grid-item">
+                    <div class="item-header">
+                        <span class="min-icon">◎</span>
+                        <h3 data-i18n="step4-title">Monitor</h3>
+                    </div>
+                    <p data-i18n="step4-desc">Track recovery progress over time with continuous health monitoring.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Diagnosis Tool Section -->
+    <section id="diagnosis-tool" class="diagnosis-section">
+        <div class="section-container">
+            <div class="tool-card reveal">
+                <h2 data-i18n="diag-tool-title">Diagnostic Laboratory</h2>
+                <p data-i18n="diag-tool-desc" class="desc-text">Select or capture a specimen image for analysis.</p>
+
+                <div class="upload-container">
+                    <input type="file" id="imageUpload" accept="image/*" style="display:none">
+                    <label for="imageUpload" class="drop-zone">
+                        <div class="drop-zone-content">
+                            <span class="drop-icon">⬆</span>
+                            <span id="upload-btn-text" data-i18n="upload-box-text">Upload Specimen</span>
+                        </div>
+                    </label>
+
+                    <div id="preview-container"></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Result Section -->
+    <section id="result-section" class="hidden"></section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="section-container reveal">
+            <p data-i18n="footer">&copy; 2026 AgriScan — MSME Udyam UDYAM-HR-06-0087998</p>
+            <div style="margin: 12px 0 8px;">
+                <a href="#" id="open-tnc" onclick="document.getElementById('tnc-modal').style.display='flex'; return false;"
+                   style="color: #264639; text-decoration: underline; font-size: 0.85rem; letter-spacing: 0.5px; font-family: 'Inter', sans-serif;">
+                    Terms & Conditions
+                </a>
+                <span style="color: #aaa; margin: 0 8px;">|</span>
+                <a href="#" id="open-privacy" onclick="document.getElementById('privacy-modal').style.display='flex'; return false;"
+                   style="color: #264639; text-decoration: underline; font-size: 0.85rem; letter-spacing: 0.5px; font-family: 'Inter', sans-serif;">
+                    Privacy Policy
+                </a>
+            </div>
+            <div id="offline-status" class="status-indicator">
+                <span class="dot"></span> <span class="status-text" data-i18n="status-online">Online</span>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Terms & Conditions Modal -->
+    <div id="tnc-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:10000; justify-content:center; align-items:center; padding:20px; box-sizing:border-box;">
+        <div style="background:#FDFCFA; max-width:720px; width:100%; max-height:85vh; overflow-y:auto; padding:40px 36px; position:relative; border:1px solid #D1C7BD; box-sizing:border-box;">
+            <button onclick="document.getElementById('tnc-modal').style.display='none'"
+                style="position:absolute; top:16px; right:20px; background:none; border:none; font-size:24px; cursor:pointer; color:#4A4540; font-family:'Inter',sans-serif;">✕</button>
+            <h2 style="font-family:'Cormorant Garamond',serif; font-size:1.8rem; color:#1C1C1C; margin-bottom:8px;">Terms & Conditions</h2>
+            <p style="font-size:0.8rem; color:#888; margin-bottom:24px; font-family:'Inter',sans-serif;">Last Updated: July 2026 — AgriScan v2.0</p>
+
+            <div style="font-family:'Inter',sans-serif; font-size:0.9rem; color:#4A4540; line-height:1.75;">
+                <h3 style="font-family:'Cormorant Garamond',serif; font-size:1.15rem; color:#264639; margin:20px 0 8px;">1. Acceptance of Terms</h3>
+                <p>By accessing or using AgriScan ("the Service"), you agree to be bound by these Terms & Conditions. AgriScan is a registered micro-enterprise under MSME Udyam Registration No. UDYAM-HR-06-0087998, NIC Code 62011 (Computer Programming Activities). If you do not agree with any part of these terms, you must discontinue use immediately.</p>
+
+                <h3 style="font-family:'Cormorant Garamond',serif; font-size:1.15rem; color:#264639; margin:20px 0 8px;">2. Service Description</h3>
+                <p>AgriScan provides AI-powered crop disease classification using on-device machine learning inference. The service operates as a Progressive Web Application (PWA) with offline capabilities. Diagnostic results are generated by a YOLOv8 nano classification model running locally in your browser and are intended as <strong>advisory guidance only</strong>.</p>
+
+                <h3 style="font-family:'Cormorant Garamond',serif; font-size:1.15rem; color:#264639; margin:20px 0 8px;">3. AI Diagnostic Disclaimer</h3>
+                <p><strong>AgriScan does not replace professional agronomic advice.</strong> The AI model provides probabilistic predictions based on visual pattern recognition. Results may be inaccurate due to image quality, lighting conditions, or plant varieties not represented in the training dataset. Users must independently verify all diagnostic results with qualified agricultural professionals before taking any action, including pesticide application or crop treatment.</p>
+
+                <h3 style="font-family:'Cormorant Garamond',serif; font-size:1.15rem; color:#264639; margin:20px 0 8px;">4. SMS Escalation Consent</h3>
+                <p>By voluntarily entering your phone number and clicking "Send SMS to Expert," you consent to the transmission of a diagnostic summary via SMS to a designated Krishi Vigyan Kendra (KVK) agricultural expert. Standard messaging rates from your carrier may apply. AgriScan does not store phone numbers beyond the duration of the SMS transaction, unless temporarily queued offline in your device's local IndexedDB storage for delivery upon network restoration.</p>
+
+                <h3 style="font-family:'Cormorant Garamond',serif; font-size:1.15rem; color:#264639; margin:20px 0 8px;">5. Data Processing & Privacy</h3>
+                <p>All image analysis is performed <strong>entirely on your device</strong>. No leaf images are uploaded to any external server. The only data transmitted externally is the SMS alert payload (disease name, confidence percentage, and farmer phone number), which is sent to our Express.js backend exclusively for the purpose of SMS delivery via the Twilio API. See our Privacy Policy for complete details.</p>
+
+                <h3 style="font-family:'Cormorant Garamond',serif; font-size:1.15rem; color:#264639; margin:20px 0 8px;">6. Intellectual Property</h3>
+                <p>All source code, design elements, AI models, and documentation comprising AgriScan are the intellectual property of AgriScan (Owner: Ujjwal Garg). The YOLOv8 model architecture is used under the Ultralytics AGPL-3.0 license. TensorFlow.js is used under the Apache 2.0 license.</p>
+
+                <h3 style="font-family:'Cormorant Garamond',serif; font-size:1.15rem; color:#264639; margin:20px 0 8px;">7. Limitation of Liability</h3>
+                <p>AgriScan and its affiliates shall not be liable for any direct, indirect, incidental, or consequential damages arising from the use of diagnostic results, including but not limited to crop loss, financial loss, or environmental damage resulting from actions taken based on AI-generated recommendations.</p>
+
+                <h3 style="font-family:'Cormorant Garamond',serif; font-size:1.15rem; color:#264639; margin:20px 0 8px;">8. Governing Law</h3>
+                <p>These terms are governed by and construed in accordance with the laws of India. Any disputes arising shall be subject to the exclusive jurisdiction of the courts in Haryana, India.</p>
+
+                <h3 style="font-family:'Cormorant Garamond',serif; font-size:1.15rem; color:#264639; margin:20px 0 8px;">9. Contact</h3>
+                <p>For queries regarding these terms, contact AgriScan via email at <a href="mailto:support@agriscan.live" style="color:#264639; text-decoration:underline;">support@agriscan.live</a> or at our registered corporate location in Sector 14 Part 2, Hisar, Haryana — 125001.</p>
+            </div>
+
+            <button onclick="document.getElementById('tnc-modal').style.display='none'"
+                style="display:block; width:100%; margin-top:28px; padding:14px; background:#264639; color:#fff; border:none; cursor:pointer; text-transform:uppercase; letter-spacing:2px; font-family:'Inter',sans-serif; font-size:0.85rem;">
+                I Understand
+            </button>
+        </div>
+    </div>
+
+    <!-- Privacy Policy Modal -->
+    <div id="privacy-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:10000; justify-content:center; align-items:center; padding:20px; box-sizing:border-box;">
+        <div style="background:#FDFCFA; max-width:720px; width:100%; max-height:85vh; overflow-y:auto; padding:40px 36px; position:relative; border:1px solid #D1C7BD; box-sizing:border-box;">
+            <button onclick="document.getElementById('privacy-modal').style.display='none'"
+                style="position:absolute; top:16px; right:20px; background:none; border:none; font-size:24px; cursor:pointer; color:#4A4540; font-family:'Inter',sans-serif;">✕</button>
+            <h2 style="font-family:'Cormorant Garamond',serif; font-size:1.8rem; color:#1C1C1C; margin-bottom:8px;">Privacy Policy</h2>
+            <p style="font-size:0.8rem; color:#888; margin-bottom:24px; font-family:'Inter',sans-serif;">Effective: July 2026 — AgriScan v2.0</p>
+
+            <div style="font-family:'Inter',sans-serif; font-size:0.9rem; color:#4A4540; line-height:1.75;">
+                <h3 style="font-family:'Cormorant Garamond',serif; font-size:1.15rem; color:#264639; margin:20px 0 8px;">1. Data We Collect</h3>
+                <p><strong>We collect minimal data.</strong> AgriScan processes leaf images entirely on your device using client-side AI. No images leave your browser. The only personal data collected is your phone number, provided voluntarily for SMS escalation, which is used solely to deliver the diagnostic alert and is not stored on our servers.</p>
+
+                <h3 style="font-family:'Cormorant Garamond',serif; font-size:1.15rem; color:#264639; margin:20px 0 8px;">2. Local Data Storage</h3>
+                <p>AgriScan uses the following browser storage mechanisms on your device:</p>
+                <ul style="padding-left: 20px; margin: 8px 0;">
+                    <li><strong>Cache Storage:</strong> Stores app-shell assets (HTML, CSS, JS, fonts, AI model) for offline access.</li>
+                    <li><strong>IndexedDB:</strong> Temporarily stores SMS alert payloads when you are offline, automatically cleared after successful delivery.</li>
+                </ul>
+                <p>All local data is scoped to the AgriScan origin and is not accessible by other websites or applications.</p>
+
+                <h3 style="font-family:'Cormorant Garamond',serif; font-size:1.15rem; color:#264639; margin:20px 0 8px;">3. Third-Party Services</h3>
+                <p>SMS delivery is powered by Twilio, Inc. When you send an SMS alert, the message payload transits through Twilio's infrastructure. Twilio's privacy policy applies to that transmission. No other third-party analytics, tracking, or advertising services are used.</p>
+
+                <h3 style="font-family:'Cormorant Garamond',serif; font-size:1.15rem; color:#264639; margin:20px 0 8px;">4. Data Retention</h3>
+                <p>We do not maintain any persistent database of user data. SMS payloads in the IndexedDB queue are marked as "sent" and can be cleared by the user at any time by clearing browser data. Server-side logs are ephemeral and not archived.</p>
+
+                <h3 style="font-family:'Cormorant Garamond',serif; font-size:1.15rem; color:#264639; margin:20px 0 8px;">5. Your Rights</h3>
+                <p>You may clear all locally stored AgriScan data at any time through your browser's settings (Clear Site Data). Since we do not store personal data on our servers, there is no server-side data to request deletion of.</p>
+
+                <h3 style="font-family:'Cormorant Garamond',serif; font-size:1.15rem; color:#264639; margin:20px 0 8px;">6. Contact</h3>
+                <p>For privacy-related inquiries, contact AgriScan via email at <a href="mailto:support@agriscan.live" style="color:#264639; text-decoration:underline;">support@agriscan.live</a> or at our registered corporate location in Sector 14 Part 2, Hisar, Haryana — 125001.</p>
+            </div>
+
+            <button onclick="document.getElementById('privacy-modal').style.display='none'"
+                style="display:block; width:100%; margin-top:28px; padding:14px; background:#264639; color:#fff; border:none; cursor:pointer; text-transform:uppercase; letter-spacing:2px; font-family:'Inter',sans-serif; font-size:0.85rem;">
+                I Understand
+            </button>
+        </div>
+    </div>
+
+    <script src="src/app.js"></script>
+</body>
+
+</html>

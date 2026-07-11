@@ -1,7 +1,7 @@
 {
     "name": "agriscan-sms-gateway",
-    "version": "1.0.0",
-    "description": "SMS Gateway backend for AgriScan AI Tomato Doctor",
+    "version": "2.0.0",
+    "description": "AgriScan SMS Escalation Gateway — Express/Twilio backend for crop diagnosis alert relay. MSME Udyam UDYAM-HR-06-0087998.",
     "main": "server.js",
     "scripts": {
         "start": "node server.js",
@@ -17,7 +17,9 @@
         "agriscan",
         "sms",
         "twilio",
-        "agriculture"
+        "agriculture",
+        "edge-ai",
+        "crop-diagnosis"
     ],
     "license": "MIT"
 }
